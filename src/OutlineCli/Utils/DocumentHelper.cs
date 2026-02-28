@@ -42,9 +42,9 @@ public static class DocumentHelper
         var metadata = new Dictionary<string, string>();
         var content = fileContent;
 
-        if (fileContent.StartsWith("---\n"))
+        if (fileContent.StartsWith($"---{Environment.NewLine}"))
         {
-            var parts = fileContent.Split(new[] { "---\n" }, 3, StringSplitOptions.None);
+            var parts = fileContent.Split(new[] { $"---{Environment.NewLine}" }, 3, StringSplitOptions.None);
             if (parts.Length >= 3)
             {
                 foreach (var line in parts[1].Split('\n'))
@@ -101,6 +101,13 @@ public static class DocumentHelper
             : doc.Text;
 
         File.WriteAllText(filePath, content);
+
+        // 设置文件的写入时间为文档的更新时间
+        if (doc.UpdatedAt.HasValue)
+        {
+            File.SetLastWriteTimeUtc(filePath, doc.UpdatedAt.Value);
+        }
+
         return Path.GetFullPath(filePath);
     }
 }

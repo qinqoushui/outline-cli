@@ -67,12 +67,42 @@ public class PullCommand
                             ? await api.GetDocumentAsync(docId)
                             : await api.GetDocumentAsync(source);
 
-                    ctx.Status("正在保存文件...");
-                    var filePath = DocumentHelper.SaveDocumentToFile(doc, outputDir, !NoFrontMatter);
+                    ctx.Status("正在检查文件...");
+                    var fileName = OutlineCli.Utils.DocumentHelper.SanitizeFileName(doc.Title) + ".md";
+                    var filePath = System.IO.Path.Combine(outputDir, fileName);
 
-                    AnsiConsole.MarkupLine($"[green]✓ 文档已保存到: {filePath}[/]");
-                    AnsiConsole.MarkupLine($"  标题: {doc.Title}");
-                    AnsiConsole.MarkupLine($"  ID: {doc.Id}");
+                    // 检查文件是否已存在且修改时间相同
+                    bool skip = false;
+                    if (File.Exists(filePath))
+                    {
+                        var existingFileInfo = new FileInfo(filePath);
+                        if (doc.UpdatedAt.HasValue && existingFileInfo.LastWriteTimeUtc == doc.UpdatedAt.Value)
+                        {
+                            skip = true;
+                        }
+                    }
+
+                    if (skip)
+                    {
+                        ctx.Status("已完成");
+                        AnsiConsole.MarkupLine($"[yellow]- 文档已是最新，跳过: {doc.Title}[/]");
+                        AnsiConsole.MarkupLine($"  ID: {doc.Id}");
+                        AnsiConsole.MarkupLine($"  本地路径: {filePath}");
+                    }
+                    else
+                    {
+                        ctx.Status("正在保存文件...");
+                        var savedPath = OutlineCli.Utils.DocumentHelper.SaveDocumentToFile(doc, outputDir, !NoFrontMatter);
+
+                        AnsiConsole.MarkupLine($"[green]✓ 文档已保存[/]");
+                        AnsiConsole.MarkupLine($"  标题: {doc.Title}");
+                        AnsiConsole.MarkupLine($"  ID: {doc.Id}");
+                        AnsiConsole.MarkupLine($"  本地路径: {savedPath}");
+                        if (doc.UpdatedAt.HasValue)
+                        {
+                            AnsiConsole.MarkupLine($"  更新时间: {doc.UpdatedAt.Value:yyyy-MM-dd HH:mm:ss} UTC");
+                        }
+                    }
 
                     return 0;
                 }
@@ -100,6 +130,7 @@ public class PullCommand
             AnsiConsole.MarkupLine($"[cyan]找到 {collections.Count} 个集合[/]");
 
             var totalSuccessCount = 0;
+            var totalSkipCount = 0;
             var totalFailCount = 0;
 
             // 为每个集合创建目录并下载文档
@@ -126,25 +157,60 @@ public class PullCommand
                     AnsiConsole.MarkupLine($"[cyan]  - {collection.Name}: {docs.Count} 个文档[/]");
 
                     int successCount = 0;
+                    int skipCount = 0;
                     int failCount = 0;
 
                     foreach (var doc in docs)
                     {
                         try
                         {
-                            DocumentHelper.SaveDocumentToFile(doc, collectionDir, !NoFrontMatter);
-                            successCount++;
+                            var fileName = OutlineCli.Utils.DocumentHelper.SanitizeFileName(doc.Title) + ".md";
+                            var filePath = System.IO.Path.Combine(collectionDir, fileName);
+
+                            // 检查文件是否已存在且修改时间相同
+                            bool skip = false;
+                            if (File.Exists(filePath))
+                            {
+                                var existingFileInfo = new FileInfo(filePath);
+                                if (doc.UpdatedAt.HasValue && existingFileInfo.LastWriteTimeUtc == doc.UpdatedAt.Value)
+                                {
+                                    skip = true;
+                                }
+                            }
+
+                            if (skip)
+                            {
+                                skipCount++;
+                                AnsiConsole.MarkupLine($"    [dim] - {doc.Title} (已是最新)[/]");
+                            }
+                            else
+                            {
+                                OutlineCli.Utils.DocumentHelper.SaveDocumentToFile(doc, collectionDir, !NoFrontMatter);
+                                successCount++;
+                                var status = File.Exists(filePath) ? "更新" : "新增";
+                                var updateTime = doc.UpdatedAt.HasValue ? $" - {doc.UpdatedAt.Value:yyyy-MM-dd HH:mm:ss} UTC" : "";
+                                AnsiConsole.MarkupLine($"    [green]✓ {doc.Title} ({status}){updateTime}[/]");
+                            }
                         }
-                        catch
+                        catch (Exception ex)
                         {
                             failCount++;
+                            AnsiConsole.MarkupLine($"    [red]✗ {doc.Title}: {ex.Message}[/]");
                         }
                     }
 
                     totalSuccessCount += successCount;
+                    totalSkipCount += skipCount;
                     totalFailCount += failCount;
 
-                    AnsiConsole.MarkupLine($"    [green]成功: {successCount}, 失败: {failCount}[/]");
+                    if (skipCount > 0)
+                    {
+                        AnsiConsole.MarkupLine($"    [dim]统计: 新增/更新 {successCount}, 跳过 {skipCount}, 失败 {failCount}[/]");
+                    }
+                    else
+                    {
+                        AnsiConsole.MarkupLine($"    [green]统计: 新增/更新 {successCount}, 失败 {failCount}[/]");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -152,7 +218,7 @@ public class PullCommand
                 }
             }
 
-            AnsiConsole.MarkupLine($"\n[cyan]总计: {totalSuccessCount} 成功, {totalFailCount} 失败[/]");
+            AnsiConsole.MarkupLine($"\n[cyan]总计: 新增/更新 {totalSuccessCount}, 跳过 {totalSkipCount}, 失败 {totalFailCount}[/]");
             return 0;
         }
         catch (Exception ex)

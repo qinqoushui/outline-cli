@@ -40,6 +40,12 @@ public class PushCommand
         public string? DocumentId { get; set; }
     }
 
+    private class ProcessResult
+    {
+        public string Status { get; set; } = string.Empty;
+        public string? Operation { get; set; }
+    }
+
     public async Task<int> OnExecuteAsync()
     {
         var configService = new ConfigService();
@@ -62,45 +68,68 @@ public class PushCommand
             // 收集需要处理的本地文档
             var localDocs = new List<LocalDocumentInfo>();
 
-
-            // 未提供路径，处理 doc 目录下的一级子目录（每个子目录对应一个 collection）
-            var docPath = IOPath.Combine(AppContext.BaseDirectory, "doc");
-
-            if (!Directory.Exists(docPath))
+            if (string.IsNullOrWhiteSpace(Path))
             {
-                AnsiConsole.MarkupLine($"[red]错误: 默认目录不存在: {docPath}[/]");
-                return 1;
-            }
+                // 未提供路径，处理 doc 目录下的一级子目录（每个子目录对应一个 collection）
+                var docPath = IOPath.Combine(AppContext.BaseDirectory, "doc");
 
-            // 获取一级子目录
-            var subDirectories = Directory.GetDirectories(docPath, "*", SearchOption.TopDirectoryOnly);
-
-            if (subDirectories.Length == 0)
-            {
-                AnsiConsole.MarkupLine($"[yellow]doc 目录下没有找到子目录[/]");
-                return 0;
-            }
-
-            // 处理每个子目录
-            foreach (var subDir in subDirectories)
-            {
-                var dirName = IOPath.GetFileName(subDir);
-                if (!string.IsNullOrWhiteSpace(Path) && !dirName.Equals(Path))
+                if (!Directory.Exists(docPath))
                 {
-                    continue;
-                }
-                // 检查是否有对应的集合
-                if (!collectionMap.TryGetValue(dirName, out var collectionId))
-                {
-                    AnsiConsole.MarkupLine($"[yellow]警告: 目录 '{dirName}' 没有匹配的集合，将跳过[/]");
-                    continue;
+                    AnsiConsole.MarkupLine($"[red]错误: 默认目录不存在: {docPath}[/]");
+                    return 1;
                 }
 
-                // 处理该子目录下的所有文件
-                var docs = await AnalyzeDirectory(subDir, collectionMap, collectionId, Recursive);
-                localDocs.AddRange(docs);
-            }
+                // 获取一级子目录
+                var subDirectories = Directory.GetDirectories(docPath, "*", SearchOption.TopDirectoryOnly);
 
+                if (subDirectories.Length == 0)
+                {
+                    AnsiConsole.MarkupLine("[yellow]doc 目录下没有找到子目录[/]");
+                    return 0;
+                }
+
+                // 处理每个子目录
+                foreach (var subDir in subDirectories)
+                {
+                    var dirName = IOPath.GetFileName(subDir);
+
+                    // 检查是否有对应的集合
+                    if (!collectionMap.TryGetValue(dirName, out var collectionId))
+                    {
+                        AnsiConsole.MarkupLine($"[yellow]警告: 目录 '{dirName}' 没有匹配的集合，将跳过[/]");
+                        continue;
+                    }
+
+                    // 处理该子目录下的所有文件
+                    var docs = await AnalyzeDirectory(subDir, collectionMap, collectionId, Recursive);
+                    localDocs.AddRange(docs);
+                }
+            }
+            else
+            {
+                // 提供了路径，直接处理该路径下的文件
+                var targetPath = Path;
+                var isDirectory = Directory.Exists(targetPath);
+                var isFile = File.Exists(targetPath);
+
+                if (!isDirectory && !isFile)
+                {
+                    AnsiConsole.MarkupLine($"[red]错误: 路径不存在: {targetPath}[/]");
+                    return 1;
+                }
+
+                if (isFile)
+                {
+                    var docInfo = await AnalyzeSingleFile(targetPath, collectionMap,"");
+                    if (docInfo != null)
+                        localDocs.Add(docInfo);
+                }
+                else
+                {
+                    var docs = await AnalyzeDirectory(targetPath, collectionMap, "", Recursive);
+                    localDocs.AddRange(docs);
+                }
+            }
 
             if (localDocs.Count == 0)
             {
@@ -136,18 +165,25 @@ public class PushCommand
             {
                 var result = await ProcessDocument(api, localDoc, Create, Publish);
 
-                var statusEmoji = result.Success ? "[green]✓[/]" : "[red]✗[/]";
+                string statusEmoji;
+                if (result.Status == "success")
+                    statusEmoji = "[green]+[/]";
+                else if (result.Status == "skip")
+                    statusEmoji = "[yellow]-[/]";
+                else
+                    statusEmoji = "[red]X[/]";
+
                 var operation = result.Operation ?? "跳过";
-                var status = result.Success ? "成功" : "失败";
 
                 table.AddRow(statusEmoji, localDoc.Title, operation, localDoc.CollectionId[..Math.Min(8, localDoc.CollectionId.Length)] + "...");
 
-                if (result.Success)
+                if (result.Status == "success")
                 {
-                    if (result.Operation == "创建" || result.Operation == "更新")
-                        successCount++;
-                    else
-                        skipCount++;
+                    successCount++;
+                }
+                else if (result.Status == "skip")
+                {
+                    skipCount++;
                 }
                 else
                 {
@@ -244,7 +280,7 @@ public class PushCommand
         return docs;
     }
 
-    private async Task<(bool Success, string? Operation)> ProcessDocument(OutlineApiService api, LocalDocumentInfo localDoc, bool forceCreate, bool publish)
+    private async Task<ProcessResult> ProcessDocument(OutlineApiService api, LocalDocumentInfo localDoc, bool forceCreate, bool publish)
     {
         try
         {
@@ -255,8 +291,7 @@ public class PushCommand
             if (forceCreate || string.IsNullOrWhiteSpace(localDoc.DocumentId))
             {
                 var doc = await api.CreateDocumentAsync(localDoc.Title, content, localDoc.CollectionId, publish: publish);
-                AnsiConsole.MarkupLine($"[green]✓ 创建成功: {localDoc.Title} (ID: {doc.Id})[/]");
-                return (true, "创建");
+                return new ProcessResult { Status = "success", Operation = "创建" };
             }
 
             // 获取服务器文档
@@ -266,19 +301,17 @@ public class PushCommand
             // 如果本地文件修改时间晚于服务器文档更新时间，则更新
             if (serverDoc.UpdatedAt.HasValue && localDoc.LastModifiedTime <= serverDoc.UpdatedAt.Value)
             {
-                AnsiConsole.MarkupLine($"[yellow]⊘ 跳过 {localDoc.Title} (本地文件未修改)[/]");
-                return (true, "跳过");
+                return new ProcessResult { Status = "skip", Operation = "跳过" };
             }
 
             // 更新文档
             var updatedDoc = await api.UpdateDocumentAsync(localDoc.DocumentId, localDoc.Title, content, publish);
-            AnsiConsole.MarkupLine($"[green]✓ 更新成功: {localDoc.Title}[/]");
-            return (true, "更新");
+            return new ProcessResult { Status = "success", Operation = "更新" };
         }
         catch (Exception ex)
         {
-            AnsiConsole.MarkupLine($"[red]✗ 处理失败 {localDoc.Title}: {ex.Message}[/]");
-            return (false, null);
+            AnsiConsole.MarkupLine($"[red]X 处理失败 {localDoc.Title}: {ex.Message}[/]");
+            return new ProcessResult { Status = "error", Operation = null };
         }
     }
 }
