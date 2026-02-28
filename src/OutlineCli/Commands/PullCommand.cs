@@ -2,6 +2,7 @@
 using Spectre.Console;
 using OutlineCli.Services;
 using OutlineCli.Utils;
+using OutlineCli.Models;
 
 namespace OutlineCli.Commands;
 
@@ -11,7 +12,7 @@ public class PullCommand
     [Argument(0, Description = "文档ID、分享ID或文档URL（可选，不指定则拉取所有文档）")]
     public string? Source { get; set; }
 
-    [Option(" -o|--output", "输出文件或目录路径", CommandOptionType.SingleValue)]
+    [Option(" -o|--output", "输出文件或目录路径（默认: ./doc）", CommandOptionType.SingleValue)]
     public string? Output { get; set; }
 
     [Option("--no-frontmatter", "不添加 frontmatter", CommandOptionType.NoValue)]
@@ -32,12 +33,7 @@ public class PullCommand
         var outputDir = Output;
         if (string.IsNullOrWhiteSpace(outputDir))
         {
-            if (string.IsNullOrWhiteSpace(config.DefaultCollectionId))
-            {
-                AnsiConsole.MarkupLine("[red]错误: 未配置 default_collection_id，请先运行 'outline config' 进行配置，或使用 --output 指定输出目录[/]");
-                return 1;
-            }
-            outputDir = Path.Combine(AppContext.BaseDirectory,"doc", config.DefaultCollectionId);
+            outputDir = System.IO.Path.Combine(AppContext.BaseDirectory, "doc");
             if (!Directory.Exists(outputDir))
             {
                 Directory.CreateDirectory(outputDir);
@@ -46,10 +42,10 @@ public class PullCommand
 
         var api = new OutlineApiService(config.ApiUrl, config.ApiToken);
 
-        // 如果不指定 source，拉取所有文档
+        // 如果不指定 source，拉取所有集合的文档
         if (string.IsNullOrWhiteSpace(Source))
         {
-            return await PullAllDocumentsAsync(api, config.DefaultCollectionId, outputDir);
+            return await PullAllDocumentsAsync(api, outputDir);
         }
 
         // 拉取单个文档
@@ -88,7 +84,7 @@ public class PullCommand
             });
     }
 
-    private async Task<int> PullAllDocumentsAsync(OutlineApiService api, string? collectionName, string outputDir)
+    private async Task<int> PullAllDocumentsAsync(OutlineApiService api, string outputDir)
     {
         try
         {
@@ -101,47 +97,34 @@ public class PullCommand
                 return 0;
             }
 
-            // 根据名称匹配集合ID
-            string? collectionId = null;
-            if (string.IsNullOrWhiteSpace(collectionName))
-            {
-                // 如果没有指定集合名称，使用第一个集合
-                collectionId = collections[0].Id;
-                AnsiConsole.MarkupLine($"[dim]使用集合: {collections[0].Name}[/]");
-            }
-            else
-            {
-                // 根据名称匹配
-                var matched = collections.FirstOrDefault(c =>
-                    c.Name.Equals(collectionName, StringComparison.OrdinalIgnoreCase) ||
-                    c.Id.Equals(collectionName, StringComparison.OrdinalIgnoreCase));
+            AnsiConsole.MarkupLine($"[cyan]找到 {collections.Count} 个集合[/]");
 
-                if (matched == null)
+            var totalSuccessCount = 0;
+            var totalFailCount = 0;
+
+            // 为每个集合创建目录并下载文档
+            foreach (var collection in collections)
+            {
+                try
                 {
-                    AnsiConsole.MarkupLine($"[red]错误: 未找到名称为 '{collectionName}' 的集合[/]");
-                    AnsiConsole.MarkupLine("[dim]可用的集合:[/]");
-                    foreach (var col in collections)
+                    // 为每个集合创建对应的子目录
+                    var collectionDir = System.IO.Path.Combine(outputDir, collection.Name);
+                    if (!Directory.Exists(collectionDir))
                     {
-                        AnsiConsole.MarkupLine($"  - {col.Name} (ID: {col.Id})");
+                        Directory.CreateDirectory(collectionDir);
                     }
-                    return 1;
-                }
 
-                collectionId = matched.Id;
-            }
+                    // 获取该集合下的所有文档
+                    var docs = await api.ListDocumentsAsync(collection.Id);
 
-            var docs = await api.ListDocumentsAsync(collectionId);
+                    if (docs.Count == 0)
+                    {
+                        AnsiConsole.MarkupLine($"[dim]  - {collection.Name}: 无文档[/]");
+                        continue;
+                    }
 
-            if (docs.Count == 0)
-            {
-                AnsiConsole.MarkupLine("[yellow]没有找到文档[/]");
-                return 0;
-            }
+                    AnsiConsole.MarkupLine($"[cyan]  - {collection.Name}: {docs.Count} 个文档[/]");
 
-            await AnsiConsole.Progress()
-                .StartAsync(async ctx =>
-                {
-                    var task = ctx.AddTask($"下载 {docs.Count} 个文档", maxValue: docs.Count);
                     int successCount = 0;
                     int failCount = 0;
 
@@ -149,19 +132,27 @@ public class PullCommand
                     {
                         try
                         {
-                            DocumentHelper.SaveDocumentToFile(doc, outputDir, !NoFrontMatter);
+                            DocumentHelper.SaveDocumentToFile(doc, collectionDir, !NoFrontMatter);
                             successCount++;
                         }
                         catch
                         {
                             failCount++;
                         }
-                        task.Increment(1);
                     }
 
-                    AnsiConsole.MarkupLine($"[green]✓ 下载完成: {successCount} 成功, {failCount} 失败[/]");
-                });
+                    totalSuccessCount += successCount;
+                    totalFailCount += failCount;
 
+                    AnsiConsole.MarkupLine($"    [green]成功: {successCount}, 失败: {failCount}[/]");
+                }
+                catch (Exception ex)
+                {
+                    AnsiConsole.MarkupLine($"[red]  - {collection.Name}: 处理失败 - {ex.Message}[/]");
+                }
+            }
+
+            AnsiConsole.MarkupLine($"\n[cyan]总计: {totalSuccessCount} 成功, {totalFailCount} 失败[/]");
             return 0;
         }
         catch (Exception ex)

@@ -21,6 +21,9 @@ public class Document
     
     [JsonPropertyName("parentDocumentId")]
     public string? ParentDocumentId { get; set; }
+    
+    [JsonPropertyName("updatedAt")]
+    public DateTime? UpdatedAt { get; set; }
 }
 
 public class ApiResponse<T>

@@ -36,8 +36,7 @@ public class ConfigCommand
         var config = new Models.AppConfig
         {
             ApiUrl = Url.TrimEnd('/'),
-            ApiToken = Token,
-            DefaultCollectionId = CollectionId
+            ApiToken = Token 
         };
 
         _configService.Save(config);

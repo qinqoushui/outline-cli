@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Text;
+using System.Text.Json;
 using OutlineCli.Models;
 
 namespace OutlineCli.Services;
@@ -18,8 +19,7 @@ public class ConfigService
             var defaultConfig = new AppConfig
             {
                 ApiUrl = "https://your-team.getoutline.com",
-                ApiToken = "",
-                DefaultCollectionId = ""
+                ApiToken = "" 
             };
             Save(defaultConfig);
         }
@@ -28,8 +28,7 @@ public class ConfigService
         var config = new AppConfig
         {
             ApiUrl = Environment.GetEnvironmentVariable("OUTLINE_API_URL") ?? "",
-            ApiToken = Environment.GetEnvironmentVariable("OUTLINE_API_TOKEN") ?? "",
-            DefaultCollectionId = Environment.GetEnvironmentVariable("OUTLINE_COLLECTION_ID")
+            ApiToken = Environment.GetEnvironmentVariable("OUTLINE_API_TOKEN") ?? "" 
         };
 
         // 如果环境变量不完整，从配置文件读取
@@ -37,7 +36,7 @@ public class ConfigService
         {
             try
             {
-                var json = File.ReadAllText(ConfigFile);
+                var json = File.ReadAllText(ConfigFile,Encoding.UTF8);
                 var fileConfig = JsonSerializer.Deserialize<AppConfig>(json);
                 if (fileConfig != null)
                 {
@@ -45,8 +44,6 @@ public class ConfigService
                         config.ApiUrl = fileConfig.ApiUrl;
                     if (string.IsNullOrWhiteSpace(config.ApiToken))
                         config.ApiToken = fileConfig.ApiToken;
-                    if (string.IsNullOrWhiteSpace(config.DefaultCollectionId))
-                        config.DefaultCollectionId = fileConfig.DefaultCollectionId;
                 }
             }
             catch { /* 忽略解析错误 */ }
@@ -61,7 +58,7 @@ public class ConfigService
         {
             WriteIndented = true
         });
-        File.WriteAllText(ConfigFile, json);
+        File.WriteAllText(ConfigFile, json,Encoding.UTF8);
     }
 
     public string GetConfigPath() => ConfigFile;
