@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "OutlineCli": {
+      "commandName": "Project",
+      "commandLineArgs": "pull"
+    }
+  }
+}
