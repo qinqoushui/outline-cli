@@ -11,5 +11,4 @@ outline wiki不提供markdown源码模式，使用API（https://www.getoutline.c
 3. 运行 outline pull ，拉取指定集合的文档到doc目录下
 4. 修改文件后再push回去，目前未测试拉取和推出单个文件
 
-<img width="1113" height="721" alt="d8701a4d79c0f432e32bd7fb702cbc08" src="https://github.com/user-attachments/assets/5a0c8db3-e44f-4d52-ab82-442ade428ebf" />
-
+ <img width="1113" height="721" alt="image" src="https://github.com/user-attachments/assets/64971460-562c-444f-b598-4dcbc7de9b52" />
