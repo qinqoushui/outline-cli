@@ -19,6 +19,13 @@ public class MainViewModel : ViewModelBase
     public IOutlineApiService? ApiService { get; private set; }
     private DocumentSyncService? _syncService;
 
+    private DocumentPreviewViewModel? _currentPreview;
+    public DocumentPreviewViewModel? CurrentPreview
+    {
+        get => _currentPreview;
+        set => SetProperty(ref _currentPreview, value);
+    }
+
     public ObservableCollection<DocumentNode> DocumentNodes { get; } = new();
     public ObservableCollection<Collection> Collections { get; } = new();
     

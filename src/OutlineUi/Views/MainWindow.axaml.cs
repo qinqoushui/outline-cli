@@ -49,6 +49,9 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
                 DataContext = viewModel
             };
             PreviewArea.Content = preview;
+            
+            // 设置当前预览，以便工具栏按钮可以绑定
+            _viewModel.CurrentPreview = viewModel;
             _currentPreviewViewModel = viewModel;
         }
     }

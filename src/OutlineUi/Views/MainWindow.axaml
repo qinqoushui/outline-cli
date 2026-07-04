@@ -32,28 +32,48 @@
       </MenuItem>
     </Menu>
 
-    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10" Spacing="10">
-      <atom:Button Command="{Binding RefreshCommand}" 
-                   Icon="{antdicons:AntDesignIconProvider Kind=SyncOutlined}"
-                   Content="刷新"/>
-      <atom:Button Command="{Binding ConfigCommand}" 
-                   Icon="{antdicons:AntDesignIconProvider Kind=SettingOutlined}"
-                   Content="配置"/>
-      <atom:Button Command="{Binding DownloadCommand}" 
-                   Icon="{antdicons:AntDesignIconProvider Kind=DownloadOutlined}"
-                   Content="下载"/>
-      <atom:Button Command="{Binding UploadCommand}" 
-                   Icon="{antdicons:AntDesignIconProvider Kind=UploadOutlined}"
-                   Content="上传"/>
-      <TextBox Text="{Binding SearchKeyword}" PlaceholderText="搜索文档..." Width="200" />
-      <ComboBox SelectedItem="{Binding SelectedCollection}" ItemsSource="{Binding Collections}" Width="150">
-        <ComboBox.ItemTemplate>
-          <DataTemplate>
-            <TextBlock Text="{Binding Name}" Margin="10,8" />
-          </DataTemplate>
-        </ComboBox.ItemTemplate>
-      </ComboBox>
-    </StackPanel>
+    <DockPanel Grid.Row="1" Margin="10">
+      <StackPanel Orientation="Horizontal" Spacing="10">
+        <atom:Button Command="{Binding RefreshCommand}" 
+                     Icon="{antdicons:AntDesignIconProvider Kind=SyncOutlined}"
+                     Content="刷新"/>
+        <atom:Button Command="{Binding ConfigCommand}" 
+                     Icon="{antdicons:AntDesignIconProvider Kind=SettingOutlined}"
+                     Content="配置"/>
+        <atom:Button Command="{Binding DownloadCommand}" 
+                     Icon="{antdicons:AntDesignIconProvider Kind=DownloadOutlined}"
+                     Content="下载"/>
+        <atom:Button Command="{Binding UploadCommand}" 
+                     Icon="{antdicons:AntDesignIconProvider Kind=UploadOutlined}"
+                     Content="上传"/>
+        <TextBox Text="{Binding SearchKeyword}" PlaceholderText="搜索文档..." Width="200" />
+        <ComboBox SelectedItem="{Binding SelectedCollection}" ItemsSource="{Binding Collections}" Width="150">
+          <ComboBox.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Text="{Binding Name}" Margin="10,8" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+      </StackPanel>
+      
+      <StackPanel Orientation="Horizontal" Spacing="10" DockPanel.Dock="Right">
+        <atom:Button Command="{Binding CurrentPreview.ToggleModeCommand}"
+                     IsVisible="{Binding CurrentPreview.IsPreviewMode}"
+                     ToolTip.Tip="切换到编辑模式 (Ctrl+I)">
+          <antdicons:AntDesignIconProvider Kind="EditOutlined" />
+        </atom:Button>
+        <atom:Button Command="{Binding CurrentPreview.ToggleModeCommand}"
+                     IsVisible="{Binding CurrentPreview.IsEditMode}"
+                     ToolTip.Tip="切换到预览模式 (Ctrl+I)">
+          <antdicons:AntDesignIconProvider Kind="EyeOutlined" />
+        </atom:Button>
+        <atom:Button Command="{Binding CurrentPreview.SaveCommand}" 
+                     IsEnabled="{Binding CurrentPreview.IsModified}"
+                     ToolTip.Tip="保存">
+          <antdicons:AntDesignIconProvider Kind="SaveOutlined" />
+        </atom:Button>
+      </StackPanel>
+    </DockPanel>
 
     <Grid Grid.Row="2" ColumnDefinitions="3*,7*" Margin="10,0">
       <Border Grid.Column="0" 

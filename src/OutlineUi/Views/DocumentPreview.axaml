@@ -19,30 +19,6 @@
   </UserControl.KeyBindings>
 
   <DockPanel>
-    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="10">
-      <atom:Button Command="{Binding ToggleModeCommand}"
-                   IsVisible="{Binding IsPreviewMode}"
-                   ToolTip.Tip="切换到编辑模式 (Ctrl+I)">
-        <StackPanel Orientation="Horizontal" Spacing="5">
-          <antdicons:AntDesignIconProvider Kind="EditOutlined" />
-          <TextBlock Text="编辑" />
-        </StackPanel>
-      </atom:Button>
-      <atom:Button Command="{Binding ToggleModeCommand}"
-                   IsVisible="{Binding IsEditMode}"
-                   ToolTip.Tip="切换到预览模式 (Ctrl+I)">
-        <StackPanel Orientation="Horizontal" Spacing="5">
-          <antdicons:AntDesignIconProvider Kind="EyeOutlined" />
-          <TextBlock Text="预览" />
-        </StackPanel>
-      </atom:Button>
-      <atom:Button Command="{Binding SaveCommand}" 
-                   IsEnabled="{Binding IsModified}"
-                   ToolTip.Tip="保存">
-        <antdicons:AntDesignIconProvider Kind="SaveOutlined" />
-      </atom:Button>
-    </StackPanel>
-
     <TextBlock DockPanel.Dock="Bottom" Margin="10" Text="{Binding Document.UpdatedAt, StringFormat='更新时间: {0}'}" />
 
     <Grid>
