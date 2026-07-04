@@ -6,6 +6,7 @@
              Title="Outline Wiki"
              Width="1200" Height="800"
              WindowStartupLocation="CenterScreen"
+             Icon="{antdicons:AntDesignIconProvider Kind=FileMarkdownOutlined}"
              x:Class="OutlineUi.Views.MainWindow"
              x:DataType="vm:MainViewModel">
 
