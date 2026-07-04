@@ -1,0 +1,69 @@
+<atom:Window xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:atom="https://atomui.net"
+             xmlns:vm="using:OutlineUi.ViewModels"
+             xmlns:antdicons="https://atomui.net/icons/antdesign"
+             x:Class="OutlineUi.Views.ConfigDialog"
+             x:DataType="vm:ConfigViewModel"
+             Width="520"
+             Height="360"
+             Title="配置"
+             WindowStartupLocation="CenterOwner">
+
+  <Design.DataContext>
+    <vm:ConfigViewModel />
+  </Design.DataContext>
+
+  <StackPanel Margin="24" Spacing="20">
+    <StackPanel Orientation="Vertical" Spacing="8">
+      <TextBlock Text="API URL" FontWeight="Medium" Foreground="#333333"/>
+      <atom:LineEdit Text="{Binding ApiUrl, Mode=TwoWay}"
+                     PlaceholderText="https://your-team.getoutline.com"
+                     Width="450"
+                     HorizontalAlignment="Left"
+                     InnerLeftContent="{antdicons:AntDesignIconProvider Kind=LinkOutlined, StrokeBrush=#8C8C8C}"/>
+    </StackPanel>
+    
+    <StackPanel Orientation="Vertical" Spacing="8">
+      <TextBlock Text="API Token" FontWeight="Medium" Foreground="#333333"/>
+      <atom:LineEdit Text="{Binding ApiToken, Mode=TwoWay}"
+                     PlaceholderText="ol_api_xxx"
+                     Width="450"
+                     HorizontalAlignment="Left"
+                     PasswordChar="•"
+                     RevealPassword="False"
+                     IsEnableRevealButton="True"
+                     InnerLeftContent="{antdicons:AntDesignIconProvider Kind=KeyOutlined, StrokeBrush=#8C8C8C}"/>
+    </StackPanel>
+    
+    <TextBlock Text="{Binding TestResult}" 
+               Foreground="#52C41A"
+               FontSize="13"
+               FontWeight="Medium"
+               TextWrapping="Wrap"
+               MaxWidth="450"
+               IsVisible="{Binding IsTestPassed}"/>
+    
+    <TextBlock Text="{Binding TestResult}" 
+               Foreground="#FF4D4F"
+               FontSize="13"
+               FontWeight="Medium"
+               TextWrapping="Wrap"
+               MaxWidth="450"
+               IsVisible="{Binding !IsTestPassed}"/>
+    
+    <StackPanel Orientation="Horizontal" 
+                HorizontalAlignment="Right" 
+                Spacing="12"
+                Margin="0,8,0,0">
+      <atom:Button Command="{Binding TestConnectionCommand}" 
+                   IsEnabled="{Binding !IsTesting}"
+                   Icon="{antdicons:AntDesignIconProvider Kind=ApiOutlined}"
+                   Content="测试连接"/>
+      <atom:Button Command="{Binding SaveCommand}"
+                   ButtonType="Primary"
+                   Icon="{antdicons:AntDesignIconProvider Kind=SaveOutlined}"
+                   Content="保存"/>
+    </StackPanel>
+  </StackPanel>
+</atom:Window>

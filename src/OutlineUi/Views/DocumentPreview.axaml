@@ -1,0 +1,46 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:OutlineUi.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:markdown="using:Markdown.Avalonia"
+             xmlns:avaloniaEdit="using:AvaloniaEdit"
+             mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
+             x:Class="OutlineUi.Views.DocumentPreview"
+             x:DataType="vm:DocumentPreviewViewModel">
+
+  <Design.DataContext>
+    <vm:DocumentPreviewViewModel />
+  </Design.DataContext>
+
+  <DockPanel>
+    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="10">
+      <RadioButton Content="预览模式" GroupName="ViewMode" IsChecked="{Binding IsPreviewMode}" />
+      <RadioButton Content="源码模式" GroupName="ViewMode" IsChecked="{Binding IsEditMode}" />
+      <Button Command="{Binding SaveCommand}" IsEnabled="{Binding IsModified}">
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <TextBlock Text="保存" />
+        </StackPanel>
+      </Button>
+      <Button Command="{Binding CancelCommand}" IsEnabled="{Binding IsModified}">
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <TextBlock Text="取消" />
+        </StackPanel>
+      </Button>
+    </StackPanel>
+
+    <TextBlock DockPanel.Dock="Bottom" Margin="10" Text="{Binding Document.UpdatedAt, StringFormat='更新时间: {0}'}" />
+
+    <Grid>
+      <markdown:MarkdownScrollViewer IsVisible="{Binding IsPreviewMode}" Markdown="{Binding SourceText}" />
+      <avaloniaEdit:TextEditor
+          IsVisible="{Binding IsEditMode}"
+          SyntaxHighlighting="Markdown"
+          ShowLineNumbers="True"
+          FontFamily="Consolas"
+          FontSize="14"
+          Document="{Binding SourceText}"
+          IsReadOnly="{Binding !IsEditMode}" />
+    </Grid>
+  </DockPanel>
+</UserControl>

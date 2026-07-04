@@ -1,0 +1,89 @@
+<atom:Window xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:atom="https://atomui.net"
+             xmlns:vm="using:OutlineUi.ViewModels"
+             xmlns:antdicons="https://atomui.net/icons/antdesign"
+             Title="Outline Wiki"
+             Width="1200" Height="800"
+             WindowStartupLocation="CenterScreen"
+             x:Class="OutlineUi.Views.MainWindow"
+             x:DataType="vm:MainViewModel">
+
+  <Design.DataContext>
+    <vm:MainViewModel />
+  </Design.DataContext>
+
+  <Grid RowDefinitions="Auto, Auto, *, Auto">
+    <Menu Grid.Row="0" Margin="0,0,0,5">
+      <MenuItem Header="文件(_F)">
+        <MenuItem Header="配置(_C)" Command="{Binding ConfigCommand}" />
+        <MenuItem Header="退出(_X)" />
+      </MenuItem>
+      <MenuItem Header="编辑(_E)">
+        <MenuItem Header="复制(_C)" InputGesture="Ctrl+C" />
+        <MenuItem Header="粘贴(_P)" InputGesture="Ctrl+V" />
+      </MenuItem>
+      <MenuItem Header="视图(_V)">
+        <MenuItem Header="刷新(_R)" Command="{Binding RefreshCommand}" InputGesture="F5" />
+      </MenuItem>
+      <MenuItem Header="工具(_T)">
+        <MenuItem Header="下载文档(_D)" Command="{Binding DownloadCommand}" />
+        <MenuItem Header="上传文档(_U)" Command="{Binding UploadCommand}" />
+      </MenuItem>
+    </Menu>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="10" Spacing="10">
+      <atom:Button Command="{Binding RefreshCommand}" 
+                   Icon="{antdicons:AntDesignIconProvider Kind=SyncOutlined}"
+                   Content="刷新"/>
+      <atom:Button Command="{Binding ConfigCommand}" 
+                   Icon="{antdicons:AntDesignIconProvider Kind=SettingOutlined}"
+                   Content="配置"/>
+      <atom:Button Command="{Binding DownloadCommand}" 
+                   Icon="{antdicons:AntDesignIconProvider Kind=DownloadOutlined}"
+                   Content="下载"/>
+      <atom:Button Command="{Binding UploadCommand}" 
+                   Icon="{antdicons:AntDesignIconProvider Kind=UploadOutlined}"
+                   Content="上传"/>
+      <TextBox Text="{Binding SearchKeyword}" PlaceholderText="搜索文档..." Width="200" />
+      <ComboBox SelectedItem="{Binding SelectedCollection}" ItemsSource="{Binding Collections}" Width="150">
+        <ComboBox.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding Name}" Margin="10,8" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+    </StackPanel>
+
+    <Grid Grid.Row="2" ColumnDefinitions="3*,7*" Margin="10,0">
+      <Border Grid.Column="0" 
+              Background="#FAFAFA" 
+              CornerRadius="8" 
+              BorderBrush="#E0E0E0"
+              BorderThickness="1"
+              Padding="8">
+        <atom:TreeView x:Name="DocumentTree"
+                       ItemsSource="{Binding DocumentNodes}"
+                       IsDefaultExpandAll="True">
+          <atom:TreeView.ItemTemplate>
+            <TreeDataTemplate ItemsSource="{Binding Children}">
+              <TextBlock Text="{Binding Name}" />
+            </TreeDataTemplate>
+          </atom:TreeView.ItemTemplate>
+        </atom:TreeView>
+      </Border>
+
+      <Border Grid.Column="1" 
+              Background="#FFFFFF" 
+              CornerRadius="8" 
+              BorderBrush="#E0E0E0"
+              BorderThickness="1"
+              Padding="8"
+              Margin="10,0,0,0">
+        <ContentControl x:Name="PreviewArea" />
+      </Border>
+    </Grid>
+
+    <TextBlock Grid.Row="3" Text="{Binding StatusMessage}" Margin="15,10" />
+  </Grid>
+</atom:Window>
