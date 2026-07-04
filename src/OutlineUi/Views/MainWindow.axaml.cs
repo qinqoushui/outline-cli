@@ -1,9 +1,12 @@
 using System;
 using System.Threading.Tasks;
 using AtomUI.Desktop.Controls;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using OutlineUi.ViewModels;
 using OutlineUi.Services;
 
@@ -29,6 +32,26 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
         
         Loaded += MainWindow_Loaded;
         _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+        
+        // 加载窗口图标
+        LoadWindowIcon();
+    }
+
+    private void LoadWindowIcon()
+    {
+        try
+        {
+            var assets = AvaloniaLocator.Current.GetService<IAssetLoader>();
+            if (assets != null)
+            {
+                var iconStream = assets.Open(new Uri("avares://OutlineUi/Assets/icon.ico"));
+                Icon = new Bitmap(iconStream);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"加载窗口图标失败: {ex.Message}");
+        }
     }
 
     private void MainWindow_Loaded(object? sender, RoutedEventArgs e)

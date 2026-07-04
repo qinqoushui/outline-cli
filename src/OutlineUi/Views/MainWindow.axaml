@@ -5,6 +5,7 @@
              xmlns:antdicons="https://atomui.net/icons/antdesign"
              Title="Outline Wiki"
              Width="1200" Height="800"
+			 Icon="/Assets/icon.ico"
              WindowStartupLocation="CenterScreen"
              x:Class="OutlineUi.Views.MainWindow"
              x:DataType="vm:MainViewModel">
