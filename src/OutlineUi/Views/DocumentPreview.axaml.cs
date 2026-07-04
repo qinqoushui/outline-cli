@@ -9,7 +9,7 @@ namespace OutlineUi.Views;
 public partial class DocumentPreview : UserControl
 {
     private ContentControl? _previewHost;
-    private object? _webView;
+    private bool _isWebViewInitialized;
 
     public DocumentPreview()
     {
@@ -25,69 +25,11 @@ public partial class DocumentPreview : UserControl
         {
             viewModel.PropertyChanged += ViewModel_PropertyChanged;
             
-            // 初始化 WebView
-            await InitializeWebViewAsync();
+            // 延迟初始化，确保控件已加载
+            await System.Threading.Tasks.Task.Delay(100);
+            
+            // 更新内容
             UpdateContent(viewModel.SourceText);
-        }
-    }
-
-    private async System.Threading.Tasks.Task InitializeWebViewAsync()
-    {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            // 非 Windows 平台，使用简单文本显示
-            if (_previewHost != null)
-            {
-                _previewHost.Content = new TextBlock 
-                { 
-                    TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                    FontSize = 14 
-                };
-            }
-            return;
-        }
-
-        try
-        {
-            // Windows 平台：尝试创建 WebView2
-            var webView2Type = Type.GetType("Microsoft.Web.WebView2.WinForms.WebView2, Microsoft.Web.WebView2.WinForms");
-            if (webView2Type != null)
-            {
-                _webView = Activator.CreateInstance(webView2Type);
-                
-                // 配置 WebView2
-                var coreWebView2Property = webView2Type.GetProperty("CoreWebView2");
-                if (coreWebView2Property != null)
-                {
-                    // 等待初始化
-                    var ensureMethod = webView2Type.GetMethod("EnsureCoreWebView2Async");
-                    if (ensureMethod != null)
-                    {
-                        await (System.Threading.Tasks.Task)ensureMethod.Invoke(_webView, new object[] { null });
-                    }
-                }
-                
-                // 使用 WindowsFormsHost 嵌入
-                var hostType = Type.GetType("Avalonia.Controls.WindowsFormsHost, Avalonia.Desktop");
-                if (hostType != null && _previewHost != null)
-                {
-                    var host = Activator.CreateInstance(hostType, _webView);
-                    _previewHost.Content = host;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"WebView2 初始化失败: {ex.Message}");
-            // 回退到简单文本显示
-            if (_previewHost != null)
-            {
-                _previewHost.Content = new TextBlock 
-                { 
-                    TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                    FontSize = 14 
-                };
-            }
         }
     }
 
@@ -102,35 +44,86 @@ public partial class DocumentPreview : UserControl
 
     private void UpdateContent(string markdown)
     {
-        if (string.IsNullOrEmpty(markdown))
+        if (_previewHost == null || string.IsNullOrEmpty(markdown))
             return;
 
-        var html = GenerateMarkdownHtml(markdown);
-
-        if (_webView != null && RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        try
         {
-            try
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && !_isWebViewInitialized)
             {
-                // WebView2 导航到 HTML
-                var navigateToStringMethod = _webView.GetType().GetMethod("NavigateToString");
-                navigateToStringMethod?.Invoke(_webView, new object[] { html });
-            }
-            catch
-            {
-                // 失败则使用简单显示
-                if (_previewHost?.Content is TextBlock textBlock)
+                // Windows 平台：尝试使用外部浏览器
+                _isWebViewInitialized = true;
+                
+                // 创建一个按钮，点击后用浏览器打开
+                var panel = new StackPanel 
+                { 
+                    Orientation = Avalonia.Layout.Orientation.Vertical,
+                    Spacing = 10,
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
+                };
+                
+                panel.Children.Add(new TextBlock 
+                { 
+                    Text = "📄 Markdown 文档",
+                    FontSize = 18,
+                    FontWeight = Avalonia.Media.FontWeight.Bold
+                });
+                
+                var openButton = new Button 
+                { 
+                    Content = "在浏览器中打开预览",
+                    Padding = new Avalonia.Thickness(20, 10),
+                    Background = Avalonia.Media.Brushes.LightBlue
+                };
+                
+                openButton.Click += async (s, e) =>
                 {
-                    textBlock.Text = markdown;
-                }
+                    var html = GenerateMarkdownHtml(markdown);
+                    var tempFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), $"markdown_preview_{Guid.NewGuid():N}.html");
+                    await System.IO.File.WriteAllTextAsync(tempFile, html);
+                    
+                    // 用系统默认浏览器打开
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = tempFile,
+                            UseShellExecute = true
+                        });
+                    }
+                };
+                
+                panel.Children.Add(openButton);
+                panel.Children.Add(new TextBlock 
+                { 
+                    Text = $"文档长度: {markdown.Length} 字符",
+                    FontSize = 12,
+                    Foreground = Avalonia.Media.Brushes.Gray
+                });
+                
+                _previewHost.Content = panel;
+            }
+            else if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // 非 Windows：直接显示文本
+                var textBlock = new TextBlock
+                {
+                    Text = markdown,
+                    TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                    FontSize = 14
+                };
+                _previewHost.Content = textBlock;
             }
         }
-        else
+        catch (Exception ex)
         {
-            // 非 Windows 或 WebView 不可用，使用简单显示
-            if (_previewHost?.Content is TextBlock textBlock)
-            {
-                textBlock.Text = markdown;
-            }
+            // 错误处理
+            _previewHost.Content = new TextBlock 
+            { 
+                Text = $"预览错误: {ex.Message}\n\n原始内容:\n{markdown}",
+                TextWrapping = Avalonia.Media.TextWrapping.Wrap
+            };
         }
     }
 
@@ -142,12 +135,13 @@ public partial class DocumentPreview : UserControl
 <head>
     <meta charset=""utf-8"">
     <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+    <title>Markdown 预览</title>
     <style>
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
             line-height: 1.6;
-            padding: 20px;
-            color: #333;
+            padding: 40px;
+            color: #24292f;
             max-width: 900px;
             margin: 0 auto;
             background-color: #fff;
@@ -158,16 +152,17 @@ public partial class DocumentPreview : UserControl
             font-weight: 600;
             line-height: 1.25;
         }}
-        h1 {{ font-size: 2em; border-bottom: 1px solid #eaecef; padding-bottom: .3em; }}
-        h2 {{ font-size: 1.5em; border-bottom: 1px solid #eaecef; padding-bottom: .3em; }}
+        h1 {{ font-size: 2em; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }}
+        h2 {{ font-size: 1.5em; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }}
         h3 {{ font-size: 1.25em; }}
+        h4 {{ font-size: 1em; }}
         code {{
             padding: 0.2em 0.4em;
             margin: 0;
             font-size: 85%;
-            background-color: rgba(27,31,35,0.05);
-            border-radius: 3px;
-            font-family: Consolas, Monaco, 'Courier New', monospace;
+            background-color: rgba(175,184,193,0.2);
+            border-radius: 6px;
+            font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
         }}
         pre {{
             padding: 16px;
@@ -175,7 +170,7 @@ public partial class DocumentPreview : UserControl
             font-size: 85%;
             line-height: 1.45;
             background-color: #f6f8fa;
-            border-radius: 3px;
+            border-radius: 6px;
         }}
         pre code {{
             background-color: transparent;
@@ -183,8 +178,8 @@ public partial class DocumentPreview : UserControl
         }}
         blockquote {{
             padding: 0 1em;
-            color: #6a737d;
-            border-left: 0.25em solid #dfe2e5;
+            color: #57606a;
+            border-left: 0.25em solid #d0d7de;
             margin: 0 0 16px 0;
         }}
         table {{
@@ -194,7 +189,7 @@ public partial class DocumentPreview : UserControl
         }}
         table th, table td {{
             padding: 6px 13px;
-            border: 1px solid #dfe2e5;
+            border: 1px solid #d0d7de;
         }}
         table th {{
             font-weight: 600;
@@ -209,7 +204,7 @@ public partial class DocumentPreview : UserControl
             background-color: #fff;
         }}
         a {{
-            color: #0366d6;
+            color: #0969da;
             text-decoration: none;
         }}
         a:hover {{
@@ -223,21 +218,42 @@ public partial class DocumentPreview : UserControl
             height: 0.25em;
             padding: 0;
             margin: 24px 0;
-            background-color: #e1e4e8;
+            background-color: #d0d7de;
             border: 0;
+        }}
+        .task-list-item {{
+            list-style-type: none;
+        }}
+        .task-list-item input {{
+            margin: 0 0.5em 0.25em -1.6em;
+            vertical-align: middle;
         }}
     </style>
     <script src=""https://cdn.jsdelivr.net/npm/marked/marked.min.js""></script>
 </head>
 <body>
-    <div id=""content"">正在加载...</div>
+    <div id=""content"" style=""display:none;"">Loading...</div>
+    <noscript>
+        <div style=""padding: 20px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; margin: 20px 0;"">
+            <strong>JavaScript 已禁用</strong><br>
+            请启用 JavaScript 以正确渲染 Markdown 内容。
+        </div>
+    </noscript>
     <script>
-        try {{
-            var markdown = {System.Text.Json.JsonSerializer.Serialize(markdown)};
-            document.getElementById('content').innerHTML = marked.parse(markdown);
-        }} catch(e) {{
-            document.getElementById('content').innerText = 'Markdown 渲染失败: ' + e.message;
-        }}
+        document.addEventListener('DOMContentLoaded', function() {{
+            try {{
+                var markdown = {System.Text.Json.JsonSerializer.Serialize(markdown)};
+                var htmlContent = marked.parse(markdown, {{
+                    breaks: true,
+                    gfm: true
+                }});
+                document.getElementById('content').innerHTML = htmlContent;
+                document.getElementById('content').style.display = 'block';
+            }} catch(e) {{
+                document.getElementById('content').innerHTML = '<div style=""padding: 20px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;""><strong>Markdown 渲染错误</strong><br>' + e.message + '</div>';
+                document.getElementById('content').style.display = 'block';
+            }}
+        }});
     </script>
 </body>
 </html>";
