@@ -14,8 +14,8 @@
 
   <DockPanel>
     <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="10" Margin="10">
-      <RadioButton Content="预览模式" GroupName="ViewMode" IsChecked="{Binding IsPreviewMode}" />
-      <RadioButton Content="源码模式" GroupName="ViewMode" IsChecked="{Binding IsEditMode}" />
+      <RadioButton Content="预览模式" IsChecked="{Binding IsPreviewMode, Mode=TwoWay}" />
+      <RadioButton Content="源码模式" IsChecked="{Binding IsEditMode, Mode=TwoWay}" />
       <Button Command="{Binding SaveCommand}" IsEnabled="{Binding IsModified}">
         <TextBlock Text="保存" />
       </Button>
