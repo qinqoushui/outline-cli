@@ -37,22 +37,24 @@
       </ScrollViewer>
       
       <!-- 编辑模式：多行文本框 -->
-      <ScrollViewer IsVisible="{Binding IsEditMode}"
-                    HorizontalScrollBarVisibility="Disabled"
-                    VerticalScrollBarVisibility="Auto"
-                    Background="White">
+      <Border IsVisible="{Binding IsEditMode}"
+              Background="#FFF8E1"
+              BorderBrush="#FF9800"
+              BorderThickness="2"
+              CornerRadius="4"
+              Padding="10"
+              Margin="10">
         <TextBox Text="{Binding SourceText, Mode=TwoWay}"
                  AcceptsReturn="True"
                  AcceptsTab="True"
                  FontFamily="Consolas"
                  FontSize="14"
-                 Padding="10"
-                 BorderThickness="1"
-                 BorderBrush="#CCCCCC"
-                 Background="White"
-                 Foreground="Black"
-                 TextWrapping="NoWrap" />
-      </ScrollViewer>
+                 Background="#E3F2FD"
+                 Foreground="#D32F2F"
+                 TextWrapping="NoWrap"
+                 BorderThickness="2"
+                 BorderBrush="#2196F3" />
+      </Border>
     </Grid>
   </DockPanel>
 </UserControl>
