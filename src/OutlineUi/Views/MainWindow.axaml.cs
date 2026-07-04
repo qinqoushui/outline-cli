@@ -1,12 +1,11 @@
 using System;
 using System.Threading.Tasks;
 using AtomUI.Desktop.Controls;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media.Imaging;
-using Avalonia.Platform;
+using Avalonia.Platform.Storage;
 using OutlineUi.ViewModels;
 using OutlineUi.Services;
 
@@ -41,11 +40,10 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
     {
         try
         {
-            var assets = AvaloniaLocator.Current.GetService<IAssetLoader>();
-            if (assets != null)
+            using var stream = typeof(MainWindow).Assembly.GetManifestResourceStream("OutlineUi.Assets.icon.ico");
+            if (stream != null)
             {
-                var iconStream = assets.Open(new Uri("avares://OutlineUi/Assets/icon.ico"));
-                Icon = new Bitmap(iconStream);
+                Icon = new Bitmap(stream);
             }
         }
         catch (Exception ex)
