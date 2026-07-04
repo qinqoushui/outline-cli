@@ -43,6 +43,7 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
             // 暂时直接加载新文档
             
             var viewModel = new DocumentPreviewViewModel(_viewModel.ApiService);
+            viewModel.MessageRequested += ViewModel_MessageRequested;
             await viewModel.LoadDocumentAsync(node.Id);
             var preview = new DocumentPreview
             {
@@ -53,6 +54,24 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
             // 设置当前预览，以便工具栏按钮可以绑定
             _viewModel.CurrentPreview = viewModel;
             _currentPreviewViewModel = viewModel;
+        }
+    }
+
+    private void ViewModel_MessageRequested(object? sender, string message)
+    {
+        // 在状态栏显示消息
+        if (_viewModel != null)
+        {
+            _viewModel.StatusMessage = message;
+            
+            // 3秒后恢复为"就绪"
+            Task.Delay(3000).ContinueWith(_ =>
+            {
+                if (_viewModel != null)
+                {
+                    _viewModel.StatusMessage = "就绪";
+                }
+            }, TaskScheduler.FromCurrentSynchronizationContext());
         }
     }
 }
