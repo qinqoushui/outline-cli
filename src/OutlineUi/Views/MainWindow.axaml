@@ -107,7 +107,8 @@
         </atom:TreeView>
       </Border>
 
-      <GridSplitter Grid.Column="1" 
+      <GridSplitter x:Name="NavigationSplitter"
+                    Grid.Column="1" 
                     ResizeDirection="Columns"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"

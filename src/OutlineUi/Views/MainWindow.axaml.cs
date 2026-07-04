@@ -40,7 +40,7 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
         
         _contentGrid = this.FindControl<Grid>("ContentGrid");
         _navigationBorder = this.FindControl<Border>("NavigationBorder");
-        _gridSplitter = this.FindControl<GridSplitter>();
+        _gridSplitter = this.FindControl<GridSplitter>("NavigationSplitter");
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
