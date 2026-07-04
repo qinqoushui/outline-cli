@@ -80,13 +80,16 @@
       </StackPanel>
     </DockPanel>
 
-    <Grid Grid.Row="2" ColumnDefinitions="3*,7*" Margin="10,0">
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*" Margin="10,0">
       <Border Grid.Column="0" 
               Background="#FAFAFA" 
               CornerRadius="8" 
               BorderBrush="#E0E0E0"
               BorderThickness="1"
-              Padding="8">
+              Padding="8"
+              Width="250"
+              MinWidth="150"
+              MaxWidth="400">
         <atom:TreeView x:Name="DocumentTree"
                        ItemsSource="{Binding DocumentNodes}"
                        IsDefaultExpandAll="True">
@@ -98,13 +101,20 @@
         </atom:TreeView>
       </Border>
 
-      <Border Grid.Column="1" 
+      <GridSplitter Grid.Column="1" 
+                    Width="5"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Stretch"
+                    Background="Transparent"
+                    ShowsPreview="True" />
+
+      <Border Grid.Column="2" 
               Background="#FFFFFF" 
               CornerRadius="8" 
               BorderBrush="#E0E0E0"
               BorderThickness="1"
               Padding="8"
-              Margin="10,0,0,0">
+              Margin="5,0,0,0">
         <ContentControl x:Name="PreviewArea" />
       </Border>
     </Grid>
