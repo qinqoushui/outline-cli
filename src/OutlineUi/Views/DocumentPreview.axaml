@@ -37,15 +37,21 @@
       </ScrollViewer>
       
       <!-- 编辑模式：多行文本框 -->
-      <ScrollViewer IsVisible="{Binding IsEditMode}">
+      <ScrollViewer IsVisible="{Binding IsEditMode}"
+                    HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto"
+                    Background="White">
         <TextBox Text="{Binding SourceText, Mode=TwoWay}"
                  AcceptsReturn="True"
                  AcceptsTab="True"
                  FontFamily="Consolas"
                  FontSize="14"
                  Padding="10"
-                 BorderThickness="0"
-                 Background="Transparent" />
+                 BorderThickness="1"
+                 BorderBrush="#CCCCCC"
+                 Background="White"
+                 Foreground="Black"
+                 TextWrapping="NoWrap" />
       </ScrollViewer>
     </Grid>
   </DockPanel>
