@@ -26,6 +26,7 @@ public class DocumentPreviewViewModel : ViewModelBase
             if (SetProperty(ref _isPreviewMode, value))
             {
                 OnPropertyChanged(nameof(IsEditMode));
+                OnPropertyChanged(nameof(ModeText));
             }
         }
     }
@@ -43,11 +44,19 @@ public class DocumentPreviewViewModel : ViewModelBase
         }
     }
     
+    public string ModeText => IsPreviewMode ? "编辑" : "预览";
+    
     private string _sourceText = string.Empty;
     public string SourceText
     {
         get => _sourceText;
-        set => SetProperty(ref _sourceText, value);
+        set
+        {
+            if (SetProperty(ref _sourceText, value))
+            {
+                CheckModified();
+            }
+        }
     }
     
     private bool _isModified;
@@ -58,13 +67,28 @@ public class DocumentPreviewViewModel : ViewModelBase
     }
     
     public ICommand SaveCommand { get; }
-    public ICommand CancelCommand { get; }
+    public ICommand ToggleModeCommand { get; }
+    
+    public event EventHandler<string>? MessageRequested;
 
     public DocumentPreviewViewModel(IOutlineApiService? apiService = null)
     {
         _apiService = apiService;
         SaveCommand = new AsyncRelayCommand(SaveAsync, () => IsModified);
-        CancelCommand = new RelayCommand(Cancel);
+        ToggleModeCommand = new RelayCommand(ToggleMode);
+    }
+
+    private void ToggleMode()
+    {
+        IsPreviewMode = !IsPreviewMode;
+    }
+
+    private void CheckModified()
+    {
+        if (Document != null)
+        {
+            IsModified = SourceText != Document.Text;
+        }
     }
 
     public async Task LoadDocumentAsync(string documentId)
@@ -100,12 +124,13 @@ public class DocumentPreviewViewModel : ViewModelBase
         try
         {
             await _apiService.UpdateDocumentAsync(Document.Id, Document.Title, SourceText);
+            Document.Text = SourceText;
             IsModified = false;
-            IsPreviewMode = true;
+            MessageRequested?.Invoke(this, "保存成功");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"保存文档失败: {ex.Message}");
+            MessageRequested?.Invoke(this, $"保存失败: {ex.Message}");
         }
         finally
         {

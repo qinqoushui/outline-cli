@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using AtomUI.Desktop.Controls;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -11,6 +12,7 @@ namespace OutlineUi.Views;
 public partial class MainWindow : AtomUI.Desktop.Controls.Window
 {
     private readonly MainViewModel _viewModel;
+    private DocumentPreviewViewModel? _currentPreviewViewModel;
 
     public MainWindow()
     {
@@ -37,6 +39,9 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
     {
         if (DocumentTree.SelectedItem is Models.DocumentNode node && node.Type == Models.NodeType.Document && !string.IsNullOrEmpty(node.Id))
         {
+            // TODO: 检查当前文档是否有未保存的更改
+            // 暂时直接加载新文档
+            
             var viewModel = new DocumentPreviewViewModel(_viewModel.ApiService);
             await viewModel.LoadDocumentAsync(node.Id);
             var preview = new DocumentPreview
@@ -44,6 +49,7 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
                 DataContext = viewModel
             };
             PreviewArea.Content = preview;
+            _currentPreviewViewModel = viewModel;
         }
     }
 }
