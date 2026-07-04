@@ -38,15 +38,14 @@
       </ScrollViewer>
       
       <!-- 编辑模式：多行文本编辑器 -->
-      <atom:TextArea IsVisible="{Binding IsEditMode}"
-                     Text="{Binding SourceText, Mode=TwoWay}"
-                     PlaceholderText="在此输入 Markdown 内容..."
-                     FontFamily="Consolas,Courier New,Monaco"
-                     FontSize="14"
-                     Padding="10"
-                     HorizontalAlignment="Stretch"
-                     VerticalAlignment="Stretch"
-                     Margin="0" />
+      <Border IsVisible="{Binding IsEditMode}"
+              Background="White">
+        <atom:TextArea Text="{Binding SourceText, Mode=TwoWay}"
+                       PlaceholderText="在此输入 Markdown 内容..."
+                       FontFamily="Consolas,Courier New,Monaco"
+                       FontSize="14"
+                       Padding="10" />
+      </Border>
     </Grid>
   </DockPanel>
 </UserControl>
