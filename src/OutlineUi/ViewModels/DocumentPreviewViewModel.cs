@@ -113,20 +113,29 @@ public class DocumentPreviewViewModel : ViewModelBase
                 var localModifiedTime = File.GetLastWriteTimeUtc(localFilePath);
                 var serverModifiedTime = doc.UpdatedAt;
                 
-                if (serverModifiedTime.HasValue && localModifiedTime > serverModifiedTime.Value)
+                if (serverModifiedTime.HasValue && localModifiedTime == serverModifiedTime.Value)
                 {
-                    var shouldDownload = await ShouldRedownloadAsync(doc.Title, localModifiedTime, serverModifiedTime ?? DateTime.MinValue);
-                    if (!shouldDownload)
-                    {
-                        var localContent = await File.ReadAllTextAsync(localFilePath);
-                        Document = doc;
-                        SourceText = localContent;
-                        IsModified = localContent != doc.Text;
-                        IsPreviewMode = true;
-                        StatusMessage = $"已加载本地缓存: {doc.Title}";
-                        _notificationService?.ShowInfo($"已加载本地缓存: {doc.Title}");
-                        return;
-                    }
+                    var localContent = await File.ReadAllTextAsync(localFilePath);
+                    Document = doc;
+                    SourceText = localContent;
+                    IsModified = localContent != doc.Text;
+                    IsPreviewMode = true;
+                    StatusMessage = $"已加载本地缓存: {doc.Title}";
+                    _notificationService?.ShowInfo($"已加载本地缓存: {doc.Title}");
+                    return;
+                }
+                
+                var shouldDownload = await ShouldRedownloadAsync(doc.Title, localModifiedTime, serverModifiedTime ?? DateTime.MinValue);
+                if (!shouldDownload)
+                {
+                    var localContent = await File.ReadAllTextAsync(localFilePath);
+                    Document = doc;
+                    SourceText = localContent;
+                    IsModified = localContent != doc.Text;
+                    IsPreviewMode = true;
+                    StatusMessage = $"已加载本地缓存: {doc.Title}";
+                    _notificationService?.ShowInfo($"已加载本地缓存: {doc.Title}");
+                    return;
                 }
             }
             
