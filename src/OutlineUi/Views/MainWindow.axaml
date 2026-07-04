@@ -85,13 +85,15 @@
       </StackPanel>
     </DockPanel>
 
-    <Grid x:Name="ContentGrid" Grid.Row="2" ColumnDefinitions="250,5,*" Margin="10,0">
+    <Grid x:Name="ContentGrid" Grid.Row="2" ColumnDefinitions="250,5,*" Margin="0">
       <Border Grid.Column="0" 
+              x:Name="NavigationBorder"
               Background="#FAFAFA" 
               CornerRadius="8" 
               BorderBrush="#E0E0E0"
               BorderThickness="1"
               Padding="8"
+              Margin="10,0,0,0"
               MinWidth="150"
               MaxWidth="400">
         <atom:TreeView x:Name="DocumentTree"
@@ -118,7 +120,7 @@
               BorderBrush="#E0E0E0"
               BorderThickness="1"
               Padding="8"
-              Margin="5,0,0,0">
+              Margin="5,0,10,0">
         <ContentControl x:Name="PreviewArea" />
       </Border>
     </Grid>

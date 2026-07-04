@@ -14,6 +14,8 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
     private readonly MainViewModel _viewModel;
     private DocumentPreviewViewModel? _currentPreviewViewModel;
     private Grid? _contentGrid;
+    private Border? _navigationBorder;
+    private GridSplitter? _gridSplitter;
 
     public MainWindow()
     {
@@ -37,11 +39,13 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
         }
         
         _contentGrid = this.FindControl<Grid>("ContentGrid");
+        _navigationBorder = this.FindControl<Border>("NavigationBorder");
+        _gridSplitter = this.FindControl<GridSplitter>();
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainViewModel.IsNavigationVisible) && _contentGrid != null)
+        if (e.PropertyName == nameof(MainViewModel.IsNavigationVisible))
         {
             UpdateGridLayout();
         }
@@ -49,17 +53,21 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
 
     private void UpdateGridLayout()
     {
-        if (_contentGrid == null) return;
+        if (_contentGrid == null || _navigationBorder == null || _gridSplitter == null) return;
 
         if (_viewModel.IsNavigationVisible)
         {
             _contentGrid.ColumnDefinitions[0].Width = new Avalonia.Controls.GridLength(250);
             _contentGrid.ColumnDefinitions[1].Width = new Avalonia.Controls.GridLength(5);
+            _navigationBorder.IsVisible = true;
+            _gridSplitter.IsVisible = true;
         }
         else
         {
             _contentGrid.ColumnDefinitions[0].Width = new Avalonia.Controls.GridLength(0);
             _contentGrid.ColumnDefinitions[1].Width = new Avalonia.Controls.GridLength(0);
+            _navigationBorder.IsVisible = false;
+            _gridSplitter.IsVisible = false;
         }
     }
 
