@@ -46,7 +46,7 @@ public class ConflictDialogViewModel : ViewModelBase
     public DateTime? LocalTimeDisplay => _localTime.HasValue ? _localTime.Value.ToLocalTime() : null;
     public DateTime? ServerTimeDisplay => _serverTime.HasValue ? _serverTime.Value.ToLocalTime() : null;
 
-    private bool _showApplyToAll = true;
+    private bool _showApplyToAll = false;
     public bool ShowApplyToAll
     {
         get => _showApplyToAll;

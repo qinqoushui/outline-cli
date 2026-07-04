@@ -96,6 +96,8 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
             
             _viewModel.CurrentPreview = viewModel;
             _currentPreviewViewModel = viewModel;
+            
+            _viewModel.SaveLastOpenedDocumentId(node.Id);
         }
     }
 

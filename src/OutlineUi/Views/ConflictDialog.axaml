@@ -33,12 +33,12 @@
         
         <StackPanel Orientation="Horizontal">
           <TextBlock Text="本地版本: " Foreground="#8C8C8C" Width="80"/>
-          <TextBlock Text="{Binding LocalTimeDisplay, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Foreground="#333333"/>
+          <TextBlock Text="{Binding LocalTimeDisplay, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" Foreground="#333333"/>
         </StackPanel>
         
         <StackPanel Orientation="Horizontal">
           <TextBlock Text="服务器版本: " Foreground="#8C8C8C" Width="80"/>
-          <TextBlock Text="{Binding ServerTimeDisplay, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Foreground="#333333"/>
+          <TextBlock Text="{Binding ServerTimeDisplay, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" Foreground="#333333"/>
         </StackPanel>
       </StackPanel>
     </Border>

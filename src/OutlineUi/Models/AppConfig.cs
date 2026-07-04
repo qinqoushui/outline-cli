@@ -15,5 +15,9 @@ public class AppConfig
     
     [JsonPropertyName("default_collection_id")]
     public string? DefaultCollectionId { get; set; }
+    
+    [JsonPropertyName("last_opened_document_id")]
+    public string? LastOpenedDocumentId { get; set; }
+    
     public bool IsValid() => !string.IsNullOrWhiteSpace(ApiUrl) && !string.IsNullOrWhiteSpace(ApiToken);
 }

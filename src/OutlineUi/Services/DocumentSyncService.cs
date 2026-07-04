@@ -123,7 +123,9 @@ public class DocumentSyncService
         
         var uploadItems = new List<DocumentUploadItem>();
         
-        foreach (var node in allNodes.Where(n => n.Type == NodeType.Document))
+        var allDocumentNodes = GetAllDocumentNodes(allNodes);
+
+        foreach (var node in allDocumentNodes)
         {
             if (string.IsNullOrEmpty(node.Id))
                 continue;
@@ -157,7 +159,7 @@ public class DocumentSyncService
                 continue;
             }
 
-            if (!serverTime.HasValue || localTime > serverTime.Value)
+            if (localTime > serverTime)
             {
                 uploadItems.Add(new DocumentUploadItem
                 {
@@ -192,25 +194,43 @@ public class DocumentSyncService
 
             try
             {
-                await _apiService.UpdateDocumentAsync(item.DocumentId, item.Title, item.Content);
+                var updatedDoc = await _apiService.UpdateDocumentAsync(item.DocumentId, item.Title, item.Content);
                 success++;
 
-                if (item.ServerTime.HasValue)
+                if (updatedDoc.UpdatedAt.HasValue)
                 {
                     var filePath = Path.Combine(localDocDir, $"{item.DocumentId}.md");
-                    File.SetLastWriteTimeUtc(filePath, item.ServerTime.Value);
+                    if (File.Exists(filePath))
+                    {
+                        File.SetLastWriteTimeUtc(filePath, updatedDoc.UpdatedAt.Value);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                failed++;
                 _notificationService?.ShowError($"上传文档失败: {item.Title} - {ex.Message}");
+                failed++;
             }
         }
 
-        skipped = uploadItems.Count - selectedItems.Count;
-
         return (success, skipped, failed);
+    }
+
+    private List<DocumentNode> GetAllDocumentNodes(List<DocumentNode> nodes)
+    {
+        var result = new List<DocumentNode>();
+        foreach (var node in nodes)
+        {
+            if (node.Type == NodeType.Document)
+            {
+                result.Add(node);
+            }
+            else if (node.Type == NodeType.Collection && node.Children != null)
+            {
+                result.AddRange(GetAllDocumentNodes(node.Children.ToList()));
+            }
+        }
+        return result;
     }
 
     private static string SanitizeFileName(string name)

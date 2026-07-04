@@ -151,6 +151,63 @@ public class MainViewModel : ViewModelBase
         _notificationService = notificationService;
     }
 
+    public void SaveLastOpenedDocumentId(string documentId)
+    {
+        var config = _configService.Load();
+        config.LastOpenedDocumentId = documentId;
+        _configService.Save(config);
+    }
+
+    public string? LoadLastOpenedDocumentId()
+    {
+        var config = _configService.Load();
+        return config.LastOpenedDocumentId;
+    }
+
+    private DocumentNode? FindNodeById(List<DocumentNode> nodes, string id)
+    {
+        foreach (var node in nodes)
+        {
+            if (node.Id == id)
+                return node;
+            
+            if (node.Type == NodeType.Collection && node.Children != null)
+            {
+                var found = FindNodeById(node.Children.ToList(), id);
+                if (found != null)
+                    return found;
+            }
+        }
+        return null;
+    }
+
+    private async Task AutoSelectLastOpenedDocument()
+    {
+        var lastOpenedId = LoadLastOpenedDocumentId();
+        if (string.IsNullOrEmpty(lastOpenedId))
+            return;
+
+        var node = FindNodeById(DocumentNodes.ToList(), lastOpenedId);
+        if (node != null)
+        {
+            SelectedDocument = node;
+            
+            var parent = node.Parent;
+            while (parent != null)
+            {
+                parent.IsExpanded = true;
+                parent = parent.Parent;
+            }
+            
+            await Task.Delay(100);
+            
+            if (_notificationService != null)
+            {
+                _notificationService.ShowInfo($"已自动打开上次文档: {node.Name}");
+            }
+        }
+    }
+
     private async Task InitializeAsync()
     {
         var config = _configService.Load();
@@ -234,6 +291,8 @@ public class MainViewModel : ViewModelBase
             
             FilterDocuments();
             StatusMessage = $"就绪 | 集合数: {Collections.Count} | 文档数: {totalDocuments}";
+            
+            await AutoSelectLastOpenedDocument();
         }
         catch (Exception ex)
         {
