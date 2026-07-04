@@ -3,6 +3,7 @@
              xmlns:vm="using:OutlineUi.ViewModels"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:atom="https://atomui.net"
              xmlns:md="https://codewf.com"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
              x:Class="OutlineUi.Views.DocumentPreview"
@@ -36,15 +37,13 @@
                           TypographySize="Normal" />
       </ScrollViewer>
       
-      <!-- 编辑模式：多行文本框 -->
-      <TextBox IsVisible="{Binding IsEditMode}"
-               Text="{Binding SourceText, Mode=TwoWay}"
-               AcceptsReturn="True"
-               AcceptsTab="True"
-               FontFamily="Consolas,Courier New,Monaco"
-               FontSize="14"
-               TextWrapping="NoWrap"
-               Padding="10" />
+      <!-- 编辑模式：多行文本编辑器 -->
+      <atom:TextArea IsVisible="{Binding IsEditMode}"
+                     Text="{Binding SourceText, Mode=TwoWay}"
+                     PlaceholderText="在此输入 Markdown 内容..."
+                     FontFamily="Consolas,Courier New,Monaco"
+                     FontSize="14"
+                     Padding="10" />
     </Grid>
   </DockPanel>
 </UserControl>
