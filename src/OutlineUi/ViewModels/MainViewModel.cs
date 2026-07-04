@@ -410,7 +410,13 @@ public class MainViewModel : ViewModelBase
 
     private async Task UploadCurrentAsync()
     {
-        if (_syncService == null || CurrentPreview?.Document == null) return;
+        Console.WriteLine($"[DEBUG] UploadCurrentAsync 开始");
+        
+        if (_syncService == null || CurrentPreview?.Document == null)
+        {
+            Console.WriteLine($"[DEBUG] UploadCurrentAsync 退出: _syncService={_syncService != null}, CurrentPreview={CurrentPreview != null}, Document={CurrentPreview?.Document != null}");
+            return;
+        }
 
         var document = CurrentPreview.Document;
         var docDir = Path.Combine(AppContext.BaseDirectory, "doc");
@@ -423,15 +429,19 @@ public class MainViewModel : ViewModelBase
         fileName = string.Join("_", fileName.Split(Path.GetInvalidFileNameChars()));
         var filePath = Path.Combine(docDir, fileName);
 
+        Console.WriteLine($"[DEBUG] 准备上传文件: {filePath}");
+
         // 如果当前有修改，先保存
         if (CurrentPreview.IsModified)
         {
             await File.WriteAllTextAsync(filePath, CurrentPreview.SourceText);
+            Console.WriteLine($"[DEBUG] 已保存修改到本地文件");
         }
         else if (!File.Exists(filePath))
         {
             // 如果文件不存在，创建它
             await File.WriteAllTextAsync(filePath, document.Text);
+            Console.WriteLine($"[DEBUG] 已创建本地文件");
         }
 
         IsLoading = true;
@@ -453,26 +463,33 @@ public class MainViewModel : ViewModelBase
                 },
                 null);
 
+            Console.WriteLine($"[DEBUG] 上传结果: success={success}, skipped={skipped}, failed={failed}");
+
             if (success > 0)
             {
                 StatusMessage = $"上传成功: {document.Title}";
+                Console.WriteLine($"[DEBUG] 设置状态: 上传成功");
             }
             else if (skipped > 0)
             {
                 StatusMessage = $"上传跳过: {document.Title} (服务器版本更新)";
+                Console.WriteLine($"[DEBUG] 设置状态: 上传跳过");
             }
             else
             {
                 StatusMessage = $"上传失败: {document.Title}";
+                Console.WriteLine($"[DEBUG] 设置状态: 上传失败");
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"上传失败: {ex.Message}";
+            Console.WriteLine($"[DEBUG] 上传异常: {ex.Message}");
         }
         finally
         {
             IsLoading = false;
+            Console.WriteLine($"[DEBUG] UploadCurrentAsync 完成");
         }
     }
 
