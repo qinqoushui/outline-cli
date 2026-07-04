@@ -16,6 +16,7 @@
   <atom:Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+I" Command="{Binding CurrentPreview.ToggleModeCommand}" />
     <KeyBinding Gesture="Ctrl+S" Command="{Binding CurrentPreview.SaveCommand}" />
+    <KeyBinding Gesture="Ctrl+B" Command="{Binding ToggleNavigationCommand}" />
   </atom:Window.KeyBindings>
 
   <Grid RowDefinitions="Auto, Auto, *, Auto">
@@ -57,6 +58,10 @@
       </StackPanel>
       
       <StackPanel Orientation="Horizontal" Spacing="10">
+        <atom:Button Command="{Binding ToggleNavigationCommand}"
+                     ToolTip.Tip="切换导航栏 (Ctrl+B)">
+          <antdicons:AntDesignIconProvider Kind="MenuFoldOutlined" />
+        </atom:Button>
         <atom:Button Command="{Binding RefreshCommand}" 
                      Icon="{antdicons:AntDesignIconProvider Kind=SyncOutlined}"
                      Content="刷新"/>
@@ -82,6 +87,7 @@
 
     <Grid Grid.Row="2" ColumnDefinitions="250,5,*" Margin="10,0">
       <Border Grid.Column="0" 
+              IsVisible="{Binding IsNavigationVisible}"
               Background="#FAFAFA" 
               CornerRadius="8" 
               BorderBrush="#E0E0E0"
@@ -101,6 +107,7 @@
       </Border>
 
       <GridSplitter Grid.Column="1" 
+                    IsVisible="{Binding IsNavigationVisible}"
                     ResizeDirection="Columns"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"

@@ -26,6 +26,15 @@ public class MainViewModel : ViewModelBase
         set => SetProperty(ref _currentPreview, value);
     }
 
+    private bool _isNavigationVisible = true;
+    public bool IsNavigationVisible
+    {
+        get => _isNavigationVisible;
+        set => SetProperty(ref _isNavigationVisible, value);
+    }
+    
+    public ICommand ToggleNavigationCommand { get; }
+
     public ObservableCollection<DocumentNode> DocumentNodes { get; } = new();
     public ObservableCollection<Collection> Collections { get; } = new();
     
@@ -94,9 +103,15 @@ public class MainViewModel : ViewModelBase
         DownloadCommand = new AsyncRelayCommand(DownloadSelectedAsync, CanDownload);
         UploadCommand = new AsyncRelayCommand(UploadLocalAsync);
         ConfigCommand = new RelayCommand(() => OpenConfigDialog());
+        ToggleNavigationCommand = new RelayCommand(ToggleNavigation);
         
         // 自动初始化
         _ = InitializeAsync();
+    }
+
+    private void ToggleNavigation()
+    {
+        IsNavigationVisible = !IsNavigationVisible;
     }
 
     private async Task InitializeAsync()
