@@ -14,6 +14,8 @@ public class ConfigViewModel : ViewModelBase
     private readonly ConfigService _configService;
     private IOutlineApiService? _apiService;
     private Views.ConfigDialog? _dialog;
+    
+    public event Action? ConfigSaved;
 
     private string _apiUrl = string.Empty;
     public string ApiUrl
@@ -106,6 +108,7 @@ public class ConfigViewModel : ViewModelBase
         };
 
         _configService.Save(config);
+        ConfigSaved?.Invoke();
         Close();
         await Task.CompletedTask;
     }

@@ -45,7 +45,31 @@ public class OutlineApiService : IOutlineApiService
     public async Task<Document> GetDocumentAsync(string documentId)
     {
         var result = await PostAsync<ApiResponse<Document>>("/api/documents.info", new { id = documentId });
-        return result.Data ?? throw new Exception("文档不存在");
+        var doc = result.Data ?? throw new Exception("文档不存在");
+        
+        //var text = await GetDocumentContentAsync(documentId);
+        doc.Text = doc.Text;
+        
+        return doc;
+    }
+    
+    public async Task<string> GetDocumentContentAsync(string documentId)
+    {
+        var response = await _httpClient.GetAsync($"{_apiUrl}/api/documents.export/{documentId}");
+        
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            throw new Exception("认证失败，请检查 API Token");
+        if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            throw new Exception("权限不足");
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            throw new Exception("资源不存在");
+        if (!response.IsSuccessStatusCode)
+        {
+            var responseBody = await response.Content.ReadAsStringAsync();
+            throw new Exception($"API 请求失败: {(int)response.StatusCode} - {responseBody}");
+        }
+        
+        return await response.Content.ReadAsStringAsync();
     }
 
     public async Task<Document> UpdateDocumentAsync(string documentId, string? title, string? text, bool publish = true)

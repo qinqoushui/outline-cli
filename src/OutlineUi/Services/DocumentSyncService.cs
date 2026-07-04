@@ -11,11 +11,13 @@ public class DocumentSyncService
 {
     private readonly IOutlineApiService _apiService;
     private readonly ConflictResolver _conflictResolver;
+    private readonly INotificationService? _notificationService;
 
-    public DocumentSyncService(IOutlineApiService apiService)
+    public DocumentSyncService(IOutlineApiService apiService, INotificationService? notificationService = null)
     {
         _apiService = apiService;
         _conflictResolver = new ConflictResolver();
+        _notificationService = notificationService;
     }
 
     public async Task<(int Success, int Skipped, int Failed)> DownloadAsync(
@@ -70,7 +72,7 @@ public class DocumentSyncService
             catch (Exception ex)
             {
                 failed++;
-                Console.WriteLine($"下载文档失败: {node.Name} - {ex.Message}");
+                _notificationService?.ShowError($"下载文档失败: {node.Name} - {ex.Message}");
             }
         }
 
@@ -128,7 +130,7 @@ public class DocumentSyncService
             catch (Exception ex)
             {
                 failed++;
-                Console.WriteLine($"上传文档失败: {file.Name} - {ex.Message}");
+                _notificationService?.ShowError($"上传文档失败: {file.Name} - {ex.Message}");
             }
         }
 

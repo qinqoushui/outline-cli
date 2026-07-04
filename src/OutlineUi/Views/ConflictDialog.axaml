@@ -1,68 +1,71 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:OutlineUi.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
-        x:Class="OutlineUi.Views.ConflictDialog"
-        x:DataType="vm:ConflictDialogViewModel"
-        Width="450"
-        Height="320"
-        Title="文档冲突">
+<atom:Window xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:atom="https://atomui.net"
+             xmlns:vm="using:OutlineUi.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="350"
+             x:Class="OutlineUi.Views.ConflictDialog"
+             x:DataType="vm:ConflictDialogViewModel"
+             Width="480"
+             Height="380"
+             Title="文档冲突"
+             WindowStartupLocation="CenterOwner">
 
   <Design.DataContext>
     <vm:ConflictDialogViewModel />
   </Design.DataContext>
 
-  <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="20">
-    <TextBlock Grid.Row="0" Text="⚠️" FontSize="24" Margin="0,0,0,10" />
-    <TextBlock Grid.Row="1" Text="文档冲突" FontSize="20" FontWeight="Bold" Margin="0,0,0,20" />
-
-    <TextBlock Grid.Row="2">
-      <Run Text="文档: " />
-      <Run Text="{Binding DocumentTitle}" FontWeight="Bold" />
-    </TextBlock>
-
-    <TextBlock Grid.Row="3" Margin="0,10,0,10">
-      <Run Text="本地版本: " />
-      <Run Text="{Binding LocalTime, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" />
-    </TextBlock>
-
-    <TextBlock Grid.Row="4">
-      <Run Text="服务器版本: " />
-      <Run Text="{Binding ServerTime, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" />
-    </TextBlock>
-
-    <TextBlock Grid.Row="5" Text="如何解决？" FontWeight="Bold" Margin="0,20,0,10" />
-
-    <StackPanel Grid.Row="6" Orientation="Vertical" Spacing="10">
-      <Button Command="{Binding OverwriteLocalCommand}" HorizontalAlignment="Stretch">
-        <TextBlock>
-          <Run Text="覆盖本地" />
-          <Run Text="- 使用服务器版本" Foreground="Gray" FontSize="12" />
-        </TextBlock>
-      </Button>
-
-      <Button Command="{Binding OverwriteServerCommand}" HorizontalAlignment="Stretch">
-        <TextBlock>
-          <Run Text="覆盖服务器" />
-          <Run Text="- 使用本地版本" Foreground="Gray" FontSize="12" />
-        </TextBlock>
-      </Button>
-
-      <Button Command="{Binding SkipCommand}" HorizontalAlignment="Stretch">
-        <TextBlock>
-          <Run Text="跳过" />
-          <Run Text="- 跳过此文档" Foreground="Gray" FontSize="12" />
-        </TextBlock>
-      </Button>
-
-      <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
-        <CheckBox Grid.Column="0" Content="应用到所有" IsChecked="{Binding ApplyToAll}" />
-        <Button Grid.Column="1" Command="{Binding CancelCommand}">
-          <TextBlock Text="取消" />
-        </Button>
-      </Grid>
+  <StackPanel Margin="24" Spacing="20">
+    <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+      <Border Background="#FFF7E6" CornerRadius="8" Padding="8">
+        <TextBlock Text="⚠️" FontSize="24"/>
+      </Border>
+      <TextBlock Text="文档冲突" FontSize="18" FontWeight="Bold" Foreground="#333333"/>
     </StackPanel>
-  </Grid>
-</Window>
+
+    <Border Background="#FAFAFA" CornerRadius="8" Padding="16">
+      <StackPanel Spacing="12">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="文档: " Foreground="#8C8C8C" Width="60"/>
+          <TextBlock Text="{Binding DocumentTitle}" FontWeight="Medium" Foreground="#333333"/>
+        </StackPanel>
+        
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="本地版本: " Foreground="#8C8C8C" Width="80"/>
+          <TextBlock Text="{Binding LocalTime, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Foreground="#333333"/>
+        </StackPanel>
+        
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="服务器版本: " Foreground="#8C8C8C" Width="80"/>
+          <TextBlock Text="{Binding ServerTime, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" Foreground="#333333"/>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <StackPanel Spacing="8">
+      <TextBlock Text="{Binding Operation}时发现文档版本冲突" FontWeight="Medium" Foreground="#333333"/>
+      
+      <atom:Button Command="{Binding PrimaryCommand}" 
+                   HorizontalAlignment="Stretch"
+                   ButtonType="Primary">
+        <TextBlock>
+          <Run Text="{Binding PrimaryButtonText}" FontWeight="Medium"/>
+          <Run Text="{Binding PrimaryButtonDescription}" Foreground="#8C8C8C" FontSize="12"/>
+        </TextBlock>
+      </atom:Button>
+
+      <atom:Button Command="{Binding SecondaryCommand}" 
+                   HorizontalAlignment="Stretch">
+        <TextBlock>
+          <Run Text="{Binding SecondaryButtonText}" FontWeight="Medium"/>
+          <Run Text="{Binding SecondaryButtonDescription}" Foreground="#8C8C8C" FontSize="12"/>
+        </TextBlock>
+      </atom:Button>
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="12" Margin="0,8,0,0">
+      <atom:CheckBox Content="应用到所有" IsChecked="{Binding ApplyToAll}" />
+    </StackPanel>
+  </StackPanel>
+</atom:Window>

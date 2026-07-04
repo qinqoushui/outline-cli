@@ -10,6 +10,7 @@ namespace OutlineUi.ViewModels;
 public class DocumentPreviewViewModel : ViewModelBase
 {
     private readonly IOutlineApiService? _apiService;
+    private readonly INotificationService? _notificationService;
     
     private Document? _document;
     public Document? Document
@@ -69,12 +70,11 @@ public class DocumentPreviewViewModel : ViewModelBase
     
     public ICommand SaveCommand { get; }
     public ICommand ToggleModeCommand { get; }
-    
-    public event EventHandler<string>? MessageRequested;
 
-    public DocumentPreviewViewModel(IOutlineApiService? apiService = null)
+    public DocumentPreviewViewModel(IOutlineApiService? apiService = null, INotificationService? notificationService = null)
     {
         _apiService = apiService;
+        _notificationService = notificationService;
         SaveCommand = new AsyncRelayCommand(SaveAsync, () => IsModified);
         ToggleModeCommand = new RelayCommand(ToggleMode);
     }
@@ -100,34 +100,31 @@ public class DocumentPreviewViewModel : ViewModelBase
         
         try
         {
+            // 从服务器下载文档内容
             var doc = await _apiService.GetDocumentAsync(documentId);
             
-            // 检查本地文件是否存在
+            // 检查本地缓存文件是否存在（使用文档ID作为唯一键）
             var docDir = Path.Combine(AppContext.BaseDirectory, "doc");
-            var fileName = $"{doc.Title}.md";
-            fileName = string.Join("_", fileName.Split(Path.GetInvalidFileNameChars()));
-            var localFilePath = Path.Combine(docDir, fileName);
+            var cacheFileName = $"{doc.Id}.md";
+            var localFilePath = Path.Combine(docDir, cacheFileName);
             
             if (File.Exists(localFilePath))
             {
                 var localModifiedTime = File.GetLastWriteTime(localFilePath);
                 var serverModifiedTime = doc.UpdatedAt;
                 
-                Console.WriteLine($"[DEBUG] 本地文件时间: {localModifiedTime}");
-                Console.WriteLine($"[DEBUG] 服务器文件时间: {serverModifiedTime}");
-                
-                // 如果本地文件更新时间晚于服务器，询问是否重新下载
                 if (localModifiedTime > serverModifiedTime)
                 {
-                    var shouldDownload = await ShouldRedownloadAsync(doc.Title, localModifiedTime, serverModifiedTime);
+                    var shouldDownload = await ShouldRedownloadAsync(doc.Title, localModifiedTime, serverModifiedTime ?? DateTime.MinValue);
                     if (!shouldDownload)
                     {
-                        // 使用本地文件
                         var localContent = await File.ReadAllTextAsync(localFilePath);
                         Document = doc;
                         SourceText = localContent;
                         IsModified = localContent != doc.Text;
                         IsPreviewMode = true;
+                        StatusMessage = $"已加载本地缓存: {doc.Title}";
+                        _notificationService?.ShowInfo($"已加载本地缓存: {doc.Title}");
                         return;
                     }
                 }
@@ -138,10 +135,25 @@ public class DocumentPreviewViewModel : ViewModelBase
             SourceText = doc.Text;
             IsModified = false;
             IsPreviewMode = true;
+            
+            // 保存到本地缓存（按文档ID命名），并设置文件修改时间为服务器时间
+            if (!Directory.Exists(docDir))
+            {
+                Directory.CreateDirectory(docDir);
+            }
+            await File.WriteAllTextAsync(localFilePath, doc.Text);
+            
+            if (doc.UpdatedAt.HasValue)
+            {
+                File.SetLastWriteTimeUtc(localFilePath, doc.UpdatedAt.Value);
+            }
+            
+            StatusMessage = $"已下载: {doc.Title}";
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"加载文档失败: {ex.Message}");
+            StatusMessage = $"下载失败: {ex.Message}";
+            _notificationService?.ShowError($"下载失败: {ex.Message}");
         }
         finally
         {
@@ -165,7 +177,7 @@ public class DocumentPreviewViewModel : ViewModelBase
         return await tcs.Task;
     }
 
-    private async Task SaveAsync()
+    public async Task SaveAsync()
     {
         if (Document == null) return;
 
@@ -173,30 +185,28 @@ public class DocumentPreviewViewModel : ViewModelBase
         
         try
         {
-            // 只保存到本地文件，不上传到服务器
+            // 保存到本地缓存（使用文档ID作为唯一键）
             var docDir = Path.Combine(AppContext.BaseDirectory, "doc");
             if (!Directory.Exists(docDir))
             {
                 Directory.CreateDirectory(docDir);
             }
             
-            var fileName = $"{Document.Title}.md";
-            // 移除文件名中的非法字符
-            fileName = string.Join("_", fileName.Split(Path.GetInvalidFileNameChars()));
-            var filePath = Path.Combine(docDir, fileName);
+            var cacheFileName = $"{Document.Id}.md";
+            var filePath = Path.Combine(docDir, cacheFileName);
             
             await File.WriteAllTextAsync(filePath, SourceText);
             
             Document.Text = SourceText;
             IsModified = false;
             
-            Console.WriteLine($"[DEBUG] SaveAsync: 已保存到本地文件 {fileName}");
-            MessageRequested?.Invoke(this, $"已保存到本地: {fileName}");
+            _notificationService?.ShowSuccess($"已保存到本地缓存");
+            StatusMessage = $"已保存: {Document.Title}";
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[DEBUG] SaveAsync 异常: {ex.Message}");
-            MessageRequested?.Invoke(this, $"保存失败: {ex.Message}");
+            _notificationService?.ShowError($"保存失败: {ex.Message}");
+            StatusMessage = $"保存失败: {ex.Message}";
         }
         finally
         {
@@ -218,5 +228,12 @@ public class DocumentPreviewViewModel : ViewModelBase
     {
         get => _isLoading;
         set => SetProperty(ref _isLoading, value);
+    }
+    
+    private string _statusMessage = string.Empty;
+    public string StatusMessage
+    {
+        get => _statusMessage;
+        set => SetProperty(ref _statusMessage, value);
     }
 }

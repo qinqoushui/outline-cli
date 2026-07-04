@@ -24,7 +24,8 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
         var configService = new ConfigService();
         var conflictDialogViewModelFactory = new Func<ConflictDialogViewModel>(() => new ConflictDialogViewModel());
         var configViewModelFactory = new Func<ConfigViewModel>(() => new ConfigViewModel(configService));
-        _viewModel = new MainViewModel(configService, configViewModelFactory, conflictDialogViewModelFactory);
+        var uploadListDialogViewModelFactory = new Func<UploadListDialogViewModel>(() => new UploadListDialogViewModel());
+        _viewModel = new MainViewModel(configService, configViewModelFactory, conflictDialogViewModelFactory, uploadListDialogViewModelFactory);
         DataContext = _viewModel;
         
         Loaded += MainWindow_Loaded;
@@ -41,6 +42,9 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
         _contentGrid = this.FindControl<Grid>("ContentGrid");
         _navigationBorder = this.FindControl<Border>("NavigationBorder");
         _gridSplitter = this.FindControl<GridSplitter>("NavigationSplitter");
+        
+        var notificationService = new NotificationService(TopLevel.GetTopLevel(this));
+        _viewModel.InitializeNotificationService(notificationService);
     }
 
     private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -75,11 +79,13 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
     {
         if (DocumentTree.SelectedItem is Models.DocumentNode node && node.Type == Models.NodeType.Document && !string.IsNullOrEmpty(node.Id))
         {
-            // TODO: 检查当前文档是否有未保存的更改
-            // 暂时直接加载新文档
+            if (_viewModel.ApiService == null)
+            {
+                _viewModel.StatusMessage = "请先完成配置";
+                return;
+            }
             
-            var viewModel = new DocumentPreviewViewModel(_viewModel.ApiService);
-            viewModel.MessageRequested += ViewModel_MessageRequested;
+            var viewModel = new DocumentPreviewViewModel(_viewModel.ApiService, _viewModel.NotificationService);
             viewModel.ConflictCheckRequested += ViewModel_ConflictCheckRequested;
             await viewModel.LoadDocumentAsync(node.Id);
             var preview = new DocumentPreview
@@ -88,39 +94,29 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
             };
             PreviewArea.Content = preview;
             
-            // 设置当前预览，以便工具栏按钮可以绑定
             _viewModel.CurrentPreview = viewModel;
             _currentPreviewViewModel = viewModel;
         }
     }
 
-    private void ViewModel_ConflictCheckRequested(object? sender, ViewModels.ConflictCheckEventArgs e)
+    private async void ViewModel_ConflictCheckRequested(object? sender, ViewModels.ConflictCheckEventArgs e)
     {
-        // 使用 ConflictDialogViewModel 显示冲突对话框
         var dialog = new ConflictDialogViewModel();
         dialog.DocumentTitle = e.DocumentTitle;
         dialog.LocalTime = e.LocalTime;
         dialog.ServerTime = e.ServerTime;
         dialog.Operation = e.Operation;
         
-        _ = Task.Run(async () =>
-        {
-            var result = await dialog.ShowAsync();
-            e.ResultHandler(result);
-        });
+        var result = await dialog.ShowAsync();
+        e.ResultHandler(result == Services.ConflictResolver.ConflictResolution.OverwriteLocal);
     }
 
     private void ViewModel_MessageRequested(object? sender, string message)
     {
-        Console.WriteLine($"[DEBUG] ViewModel_MessageRequested 收到消息: {message}");
-        
-        // 在状态栏显示消息
         if (_viewModel != null)
         {
             _viewModel.StatusMessage = message;
-            Console.WriteLine($"[DEBUG] StatusMessage 已设置为: {message}");
             
-            // 3秒后恢复为"就绪"
             Task.Delay(3000).ContinueWith(_ =>
             {
                 if (_viewModel != null)

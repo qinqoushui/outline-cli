@@ -15,15 +15,41 @@ public class MainViewModel : ViewModelBase
     private readonly ConfigService _configService;
     private readonly Func<ConfigViewModel> _configViewModelFactory;
     private readonly Func<ConflictDialogViewModel> _conflictDialogViewModelFactory;
+    private readonly Func<UploadListDialogViewModel> _uploadListDialogViewModelFactory;
+    private INotificationService _notificationService;
     
     public IOutlineApiService? ApiService { get; private set; }
+    public INotificationService? NotificationService => _notificationService;
     private DocumentSyncService? _syncService;
 
     private DocumentPreviewViewModel? _currentPreview;
     public DocumentPreviewViewModel? CurrentPreview
     {
         get => _currentPreview;
-        set => SetProperty(ref _currentPreview, value);
+        set
+        {
+            if (_currentPreview != null)
+            {
+                _currentPreview.PropertyChanged -= CurrentPreview_PropertyChanged;
+            }
+            
+            if (SetProperty(ref _currentPreview, value))
+            {
+                if (_currentPreview != null)
+                {
+                    _currentPreview.PropertyChanged += CurrentPreview_PropertyChanged;
+                }
+                (UploadCurrentCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    private void CurrentPreview_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(DocumentPreviewViewModel.Document))
+        {
+            (UploadCurrentCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+        }
     }
 
     private bool _isNavigationVisible = true;
@@ -94,11 +120,15 @@ public class MainViewModel : ViewModelBase
     public MainViewModel(
         ConfigService configService,
         Func<ConfigViewModel> configViewModelFactory,
-        Func<ConflictDialogViewModel> conflictDialogViewModelFactory)
+        Func<ConflictDialogViewModel> conflictDialogViewModelFactory,
+        Func<UploadListDialogViewModel> uploadListDialogViewModelFactory,
+        INotificationService? notificationService = null)
     {
         _configService = configService;
         _configViewModelFactory = configViewModelFactory;
         _conflictDialogViewModelFactory = conflictDialogViewModelFactory;
+        _uploadListDialogViewModelFactory = uploadListDialogViewModelFactory;
+        _notificationService = notificationService ?? new NotificationService(null);
         
         RefreshCommand = new AsyncRelayCommand(LoadDocumentsAsync);
         DownloadCommand = new AsyncRelayCommand(DownloadSelectedAsync, CanDownload);
@@ -115,6 +145,11 @@ public class MainViewModel : ViewModelBase
     {
         IsNavigationVisible = !IsNavigationVisible;
     }
+    
+    public void InitializeNotificationService(INotificationService notificationService)
+    {
+        _notificationService = notificationService;
+    }
 
     private async Task InitializeAsync()
     {
@@ -126,7 +161,7 @@ public class MainViewModel : ViewModelBase
         }
 
         ApiService = new OutlineApiService(config.ApiUrl, config.ApiToken);
-        _syncService = new DocumentSyncService(ApiService);
+        _syncService = new DocumentSyncService(ApiService, _notificationService);
         
         await LoadDocumentsAsync();
     }
@@ -332,14 +367,13 @@ public class MainViewModel : ViewModelBase
 
     private async Task UploadLocalAsync()
     {
-        if (_syncService == null) return;
+        if (_syncService == null || ApiService == null) return;
 
         var docDir = Path.Combine(AppContext.BaseDirectory, "doc");
         if (!Directory.Exists(docDir))
         {
             StatusMessage = $"本地文档目录不存在: {docDir}";
             
-            // 可以选择创建目录
             try
             {
                 Directory.CreateDirectory(docDir);
@@ -362,26 +396,94 @@ public class MainViewModel : ViewModelBase
             return;
         }
 
-        IsLoading = true;
-        StatusMessage = $"正在上传 {files.Count} 个文档...";
+        StatusMessage = "正在检查文档状态...";
         
         try
         {
+            var uploadList = new List<UploadFileInfo>();
+            
+            foreach (var file in files)
+            {
+                var content = File.ReadAllText(file.FullName);
+                var (metadata, _) = DocumentHelper.ParseFileContent(content);
+                
+                if (!metadata.TryGetValue("id", out var documentId) || string.IsNullOrWhiteSpace(documentId))
+                {
+                    continue;
+                }
+
+                var uploadInfo = new UploadFileInfo
+                {
+                    FilePath = file.FullName,
+                    FileName = file.Name,
+                    DocumentId = documentId,
+                    DocumentTitle = metadata.TryGetValue("title", out var title) ? title : Path.GetFileNameWithoutExtension(file.Name),
+                    LocalTime = file.LastWriteTimeUtc,
+                    IsSelected = true
+                };
+
+                try
+                {
+                    var serverDoc = await ApiService.GetDocumentAsync(documentId);
+                    uploadInfo.ServerTime = serverDoc.UpdatedAt;
+                    uploadInfo.HasConflict = uploadInfo.LocalTime > uploadInfo.ServerTime;
+                }
+                catch
+                {
+                    uploadInfo.HasConflict = false;
+                }
+
+                uploadList.Add(uploadInfo);
+            }
+
+            if (uploadList.Count == 0)
+            {
+                StatusMessage = "没有找到有效的文档缓存文件（缺少 id 元数据）";
+                return;
+            }
+
+            var dialog = _uploadListDialogViewModelFactory();
+            foreach (var info in uploadList)
+            {
+                dialog.Files.Add(info);
+            }
+
+            var confirmed = await dialog.ShowAsync();
+            if (!confirmed)
+            {
+                StatusMessage = "上传已取消";
+                return;
+            }
+
+            var selectedFiles = uploadList
+                .Where(f => f.IsSelected)
+                .Select(f => new FileInfo(f.FilePath))
+                .ToList();
+
+            if (selectedFiles.Count == 0)
+            {
+                StatusMessage = "未选择任何文件上传";
+                return;
+            }
+
+            IsLoading = true;
+            StatusMessage = $"正在上传 {selectedFiles.Count} 个文档...";
+            
             var progress = new Progress<(int current, int total, string documentTitle)>(p =>
             {
                 StatusMessage = $"正在上传: {p.current}/{p.total} - {p.documentTitle}";
             });
 
             var (success, skipped, failed) = await _syncService.UploadAsync(
-                files,
+                selectedFiles,
                 async (title, localTime, serverTime) =>
                 {
-                    var dialog = _conflictDialogViewModelFactory();
-                    dialog.DocumentTitle = title;
-                    dialog.LocalTime = localTime;
-                    dialog.ServerTime = serverTime;
-                    dialog.Operation = "上传";
-                    return await dialog.ShowAsync();
+                    var conflictDialog = _conflictDialogViewModelFactory();
+                    conflictDialog.DocumentTitle = title;
+                    conflictDialog.LocalTime = localTime;
+                    conflictDialog.ServerTime = serverTime;
+                    conflictDialog.Operation = "上传";
+                    return await conflictDialog.ShowAsync();
                 },
                 progress);
 
@@ -400,7 +502,13 @@ public class MainViewModel : ViewModelBase
     private void OpenConfigDialog()
     {
         var viewModel = _configViewModelFactory();
+        viewModel.ConfigSaved += OnConfigSaved;
         _ = viewModel.ShowAsync();
+    }
+    
+    private async void OnConfigSaved()
+    {
+        await InitializeAsync();
     }
 
     private bool CanUploadCurrent()
@@ -410,38 +518,27 @@ public class MainViewModel : ViewModelBase
 
     private async Task UploadCurrentAsync()
     {
-        Console.WriteLine($"[DEBUG] UploadCurrentAsync 开始");
-        
         if (_syncService == null || CurrentPreview?.Document == null)
         {
-            Console.WriteLine($"[DEBUG] UploadCurrentAsync 退出: _syncService={_syncService != null}, CurrentPreview={CurrentPreview != null}, Document={CurrentPreview?.Document != null}");
             return;
         }
 
         var document = CurrentPreview.Document;
-        var docDir = Path.Combine(AppContext.BaseDirectory, "doc");
-        if (!Directory.Exists(docDir))
-        {
-            Directory.CreateDirectory(docDir);
-        }
-
-        var fileName = $"{document.Title}.md";
-        fileName = string.Join("_", fileName.Split(Path.GetInvalidFileNameChars()));
-        var filePath = Path.Combine(docDir, fileName);
-
-        Console.WriteLine($"[DEBUG] 准备上传文件: {filePath}");
-
-        // 如果当前有修改，先保存
+        
         if (CurrentPreview.IsModified)
         {
-            await File.WriteAllTextAsync(filePath, CurrentPreview.SourceText);
-            Console.WriteLine($"[DEBUG] 已保存修改到本地文件");
+            await CurrentPreview.SaveAsync();
         }
-        else if (!File.Exists(filePath))
+        
+        var docDir = Path.Combine(AppContext.BaseDirectory, "doc");
+        var cacheFileName = $"{document.Id}.md";
+        var filePath = Path.Combine(docDir, cacheFileName);
+
+        if (!File.Exists(filePath))
         {
-            // 如果文件不存在，创建它
-            await File.WriteAllTextAsync(filePath, document.Text);
-            Console.WriteLine($"[DEBUG] 已创建本地文件");
+            StatusMessage = $"本地缓存不存在: {document.Title}";
+            _notificationService.ShowWarning($"本地缓存不存在: {document.Title}");
+            return;
         }
 
         IsLoading = true;
@@ -463,33 +560,30 @@ public class MainViewModel : ViewModelBase
                 },
                 null);
 
-            Console.WriteLine($"[DEBUG] 上传结果: success={success}, skipped={skipped}, failed={failed}");
-
             if (success > 0)
             {
                 StatusMessage = $"上传成功: {document.Title}";
-                Console.WriteLine($"[DEBUG] 设置状态: 上传成功");
+                _notificationService.ShowSuccess($"上传成功: {document.Title}");
             }
             else if (skipped > 0)
             {
                 StatusMessage = $"上传跳过: {document.Title} (服务器版本更新)";
-                Console.WriteLine($"[DEBUG] 设置状态: 上传跳过");
+                _notificationService.ShowWarning($"上传跳过: {document.Title} (服务器版本更新)");
             }
             else
             {
                 StatusMessage = $"上传失败: {document.Title}";
-                Console.WriteLine($"[DEBUG] 设置状态: 上传失败");
+                _notificationService.ShowError($"上传失败: {document.Title}");
             }
         }
         catch (Exception ex)
         {
             StatusMessage = $"上传失败: {ex.Message}";
-            Console.WriteLine($"[DEBUG] 上传异常: {ex.Message}");
+            _notificationService.ShowError($"上传失败: {ex.Message}");
         }
         finally
         {
             IsLoading = false;
-            Console.WriteLine($"[DEBUG] UploadCurrentAsync 完成");
         }
     }
 
