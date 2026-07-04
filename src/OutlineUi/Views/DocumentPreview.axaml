@@ -44,16 +44,15 @@
               CornerRadius="4"
               Padding="10"
               Margin="10">
-        <TextBox Text="{Binding SourceText, Mode=TwoWay}"
-                 AcceptsReturn="True"
-                 AcceptsTab="True"
-                 FontFamily="Consolas"
-                 FontSize="14"
-                 Background="#E3F2FD"
-                 Foreground="#D32F2F"
-                 TextWrapping="NoWrap"
-                 BorderThickness="2"
-                 BorderBrush="#2196F3" />
+        <ScrollViewer HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      Background="#E3F2FD">
+          <TextBlock Text="{Binding SourceText}"
+                     FontFamily="Consolas"
+                     FontSize="14"
+                     Foreground="#D32F2F"
+                     TextWrapping="NoWrap" />
+        </ScrollViewer>
       </Border>
     </Grid>
   </DockPanel>
