@@ -21,14 +21,26 @@ public class DocumentPreviewViewModel : ViewModelBase
     public bool IsPreviewMode
     {
         get => _isPreviewMode;
-        set => SetProperty(ref _isPreviewMode, value);
+        set
+        {
+            if (SetProperty(ref _isPreviewMode, value))
+            {
+                OnPropertyChanged(nameof(IsEditMode));
+            }
+        }
     }
     
-    private bool _isEditMode;
     public bool IsEditMode
     {
-        get => _isEditMode;
-        set => SetProperty(ref _isEditMode, value);
+        get => !_isPreviewMode;
+        set
+        {
+            if (value != IsEditMode)
+            {
+                IsPreviewMode = !value;
+                OnPropertyChanged(nameof(IsEditMode));
+            }
+        }
     }
     
     private string _sourceText = string.Empty;
@@ -68,7 +80,6 @@ public class DocumentPreviewViewModel : ViewModelBase
             SourceText = doc.Text;
             IsModified = false;
             IsPreviewMode = true;
-            IsEditMode = false;
         }
         catch (Exception ex)
         {
@@ -91,7 +102,6 @@ public class DocumentPreviewViewModel : ViewModelBase
             await _apiService.UpdateDocumentAsync(Document.Id, Document.Title, SourceText);
             IsModified = false;
             IsPreviewMode = true;
-            IsEditMode = false;
         }
         catch (Exception ex)
         {
