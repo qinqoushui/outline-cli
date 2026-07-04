@@ -26,12 +26,10 @@
     <TextBlock DockPanel.Dock="Bottom" Margin="10" Text="{Binding Document.UpdatedAt, StringFormat='更新时间: {0}'}" />
 
     <Grid>
-      <!-- 预览模式：HTML 渲染 -->
-      <ScrollViewer IsVisible="{Binding IsPreviewMode}" Padding="10">
-        <TextBlock x:Name="HtmlContent" 
-                   TextWrapping="Wrap"
-                   FontSize="14" />
-      </ScrollViewer>
+      <!-- 预览模式：占位控件，在代码中动态创建 WebView2 -->
+      <ContentControl x:Name="PreviewHost" 
+                      IsVisible="{Binding IsPreviewMode}"
+                      Margin="10" />
       
       <!-- 编辑模式：多行文本框 -->
       <ScrollViewer IsVisible="{Binding IsEditMode}">
