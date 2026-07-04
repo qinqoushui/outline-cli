@@ -21,14 +21,36 @@ public class ConflictDialogViewModel : ViewModelBase
     public DateTime? LocalTime
     {
         get => _localTime;
-        set => SetProperty(ref _localTime, value);
+        set
+        {
+            if (SetProperty(ref _localTime, value))
+            {
+                OnPropertyChanged(nameof(LocalTimeDisplay));
+            }
+        }
     }
 
     private DateTime? _serverTime;
     public DateTime? ServerTime
     {
         get => _serverTime;
-        set => SetProperty(ref _serverTime, value);
+        set
+        {
+            if (SetProperty(ref _serverTime, value))
+            {
+                OnPropertyChanged(nameof(ServerTimeDisplay));
+            }
+        }
+    }
+
+    public DateTime? LocalTimeDisplay => _localTime.HasValue ? _localTime.Value.ToLocalTime() : null;
+    public DateTime? ServerTimeDisplay => _serverTime.HasValue ? _serverTime.Value.ToLocalTime() : null;
+
+    private bool _showApplyToAll = true;
+    public bool ShowApplyToAll
+    {
+        get => _showApplyToAll;
+        set => SetProperty(ref _showApplyToAll, value);
     }
 
     private bool _applyToAll;
@@ -102,6 +124,12 @@ public class ConflictDialogViewModel : ViewModelBase
         {
             DataContext = this
         };
+
+        if (!_showApplyToAll)
+        {
+            _dialog.HideApplyToAll();
+        }
+
         var window = Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
             ? desktop.MainWindow
             : null;

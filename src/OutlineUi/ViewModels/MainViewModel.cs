@@ -349,7 +349,8 @@ public class MainViewModel : ViewModelBase
                     dialog.LocalTime = localTime;
                     dialog.ServerTime = serverTime;
                     dialog.Operation = "下载";
-                    return await dialog.ShowAsync();
+                    var result = await dialog.ShowAsync();
+                    return result == Services.ConflictResolver.ConflictResolution.OverwriteLocal;
                 },
                 progress);
 
@@ -386,104 +387,56 @@ public class MainViewModel : ViewModelBase
             return;
         }
 
-        var files = Directory.GetFiles(docDir, "*.md", SearchOption.AllDirectories)
-            .Select(f => new FileInfo(f))
-            .ToList();
-
-        if (files.Count == 0)
-        {
-            StatusMessage = $"没有在 {docDir} 找到 .md 文件";
-            return;
-        }
-
-        StatusMessage = "正在检查文档状态...";
+        IsLoading = true;
         
         try
         {
-            var uploadList = new List<UploadFileInfo>();
-            
-            foreach (var file in files)
-            {
-                var content = File.ReadAllText(file.FullName);
-                var (metadata, _) = DocumentHelper.ParseFileContent(content);
-                
-                if (!metadata.TryGetValue("id", out var documentId) || string.IsNullOrWhiteSpace(documentId))
-                {
-                    continue;
-                }
-
-                var uploadInfo = new UploadFileInfo
-                {
-                    FilePath = file.FullName,
-                    FileName = file.Name,
-                    DocumentId = documentId,
-                    DocumentTitle = metadata.TryGetValue("title", out var title) ? title : Path.GetFileNameWithoutExtension(file.Name),
-                    LocalTime = file.LastWriteTimeUtc,
-                    IsSelected = true
-                };
-
-                try
-                {
-                    var serverDoc = await ApiService.GetDocumentAsync(documentId);
-                    uploadInfo.ServerTime = serverDoc.UpdatedAt;
-                    uploadInfo.HasConflict = uploadInfo.LocalTime > uploadInfo.ServerTime;
-                }
-                catch
-                {
-                    uploadInfo.HasConflict = false;
-                }
-
-                uploadList.Add(uploadInfo);
-            }
-
-            if (uploadList.Count == 0)
-            {
-                StatusMessage = "没有找到有效的文档缓存文件（缺少 id 元数据）";
-                return;
-            }
-
-            var dialog = _uploadListDialogViewModelFactory();
-            foreach (var info in uploadList)
-            {
-                dialog.Files.Add(info);
-            }
-
-            var confirmed = await dialog.ShowAsync();
-            if (!confirmed)
-            {
-                StatusMessage = "上传已取消";
-                return;
-            }
-
-            var selectedFiles = uploadList
-                .Where(f => f.IsSelected)
-                .Select(f => new FileInfo(f.FilePath))
-                .ToList();
-
-            if (selectedFiles.Count == 0)
-            {
-                StatusMessage = "未选择任何文件上传";
-                return;
-            }
-
-            IsLoading = true;
-            StatusMessage = $"正在上传 {selectedFiles.Count} 个文档...";
-            
             var progress = new Progress<(int current, int total, string documentTitle)>(p =>
             {
                 StatusMessage = $"正在上传: {p.current}/{p.total} - {p.documentTitle}";
             });
 
-            var (success, skipped, failed) = await _syncService.UploadAsync(
-                selectedFiles,
-                async (title, localTime, serverTime) =>
+            var (success, skipped, failed) = await _syncService.UploadModifiedAsync(
+                DocumentNodes.ToList(),
+                docDir,
+                async (items) =>
                 {
-                    var conflictDialog = _conflictDialogViewModelFactory();
-                    conflictDialog.DocumentTitle = title;
-                    conflictDialog.LocalTime = localTime;
-                    conflictDialog.ServerTime = serverTime;
-                    conflictDialog.Operation = "上传";
-                    return await conflictDialog.ShowAsync();
+                    var dialog = _uploadListDialogViewModelFactory();
+                    foreach (var item in items)
+                    {
+                        dialog.Files.Add(new UploadFileInfo
+                        {
+                            FilePath = Path.Combine(docDir, $"{item.DocumentId}.md"),
+                            FileName = $"{item.DocumentId}.md",
+                            DocumentId = item.DocumentId,
+                            DocumentTitle = item.Title,
+                            LocalTime = item.LocalTime,
+                            ServerTime = item.ServerTime,
+                            HasConflict = item.ServerTime.HasValue && item.LocalTime > item.ServerTime.Value,
+                            IsSelected = item.Selected
+                        });
+                    }
+
+                    var confirmed = await dialog.ShowAsync();
+                    if (!confirmed)
+                    {
+                        foreach (var item in items)
+                        {
+                            item.Selected = false;
+                        }
+                    }
+                    else
+                    {
+                        foreach (var item in items)
+                        {
+                            var dialogItem = dialog.Files.FirstOrDefault(f => f.DocumentId == item.DocumentId);
+                            if (dialogItem != null)
+                            {
+                                item.Selected = dialogItem.IsSelected;
+                            }
+                        }
+                    }
+                    return items;
                 },
                 progress);
 
@@ -546,9 +499,14 @@ public class MainViewModel : ViewModelBase
         
         try
         {
-            var fileInfo = new FileInfo(filePath);
-            var (success, skipped, failed) = await _syncService.UploadAsync(
-                new List<FileInfo> { fileInfo },
+            var content = await File.ReadAllTextAsync(filePath);
+            var localTime = File.GetLastWriteTimeUtc(filePath);
+            
+            var (success, skipped, failed) = await _syncService.UploadSingleAsync(
+                document.Id,
+                document.Title,
+                content,
+                localTime,
                 async (title, localTime, serverTime) =>
                 {
                     var dialog = _conflictDialogViewModelFactory();
@@ -556,9 +514,10 @@ public class MainViewModel : ViewModelBase
                     dialog.LocalTime = localTime;
                     dialog.ServerTime = serverTime;
                     dialog.Operation = "上传";
-                    return await dialog.ShowAsync();
-                },
-                null);
+                    dialog.ShowApplyToAll = false;
+                    var result = await dialog.ShowAsync();
+                    return result == Services.ConflictResolver.ConflictResolution.OverwriteServer;
+                });
 
             if (success > 0)
             {
@@ -567,8 +526,8 @@ public class MainViewModel : ViewModelBase
             }
             else if (skipped > 0)
             {
-                StatusMessage = $"上传跳过: {document.Title} (服务器版本更新)";
-                _notificationService.ShowWarning($"上传跳过: {document.Title} (服务器版本更新)");
+                StatusMessage = $"上传跳过: {document.Title} (用户取消)";
+                _notificationService.ShowWarning($"上传跳过: {document.Title} (用户取消)");
             }
             else
             {

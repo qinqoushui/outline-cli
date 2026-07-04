@@ -10,20 +10,18 @@ namespace OutlineUi.Services;
 public class DocumentSyncService
 {
     private readonly IOutlineApiService _apiService;
-    private readonly ConflictResolver _conflictResolver;
     private readonly INotificationService? _notificationService;
 
     public DocumentSyncService(IOutlineApiService apiService, INotificationService? notificationService = null)
     {
         _apiService = apiService;
-        _conflictResolver = new ConflictResolver();
         _notificationService = notificationService;
     }
 
     public async Task<(int Success, int Skipped, int Failed)> DownloadAsync(
         List<DocumentNode> nodes,
         string outputDir,
-        Func<string, DateTime?, DateTime?, Task<ConflictResolver.ConflictResolution?>>? onConflict = null,
+        Func<string, DateTime?, DateTime?, Task<bool>>? onConflict = null,
         IProgress<(int current, int total, string documentTitle)>? progress = null)
     {
         int success = 0, skipped = 0, failed = 0;
@@ -50,23 +48,25 @@ public class DocumentSyncService
                 DateTime? localTime = localFile.Exists ? localFile.LastWriteTimeUtc : null;
                 DateTime? serverTime = doc.UpdatedAt;
 
-                if (_conflictResolver.CheckConflict(localTime, serverTime))
+                if (localTime.HasValue && serverTime.HasValue && localTime > serverTime)
                 {
                     if (onConflict != null)
                     {
-                        var resolution = await onConflict(doc.Title, localTime, serverTime);
-                        switch (resolution)
+                        var shouldOverwrite = await onConflict(doc.Title, localTime, serverTime);
+                        if (!shouldOverwrite)
                         {
-                            case ConflictResolver.ConflictResolution.Skip:
-                                skipped++;
-                                continue;
-                            case ConflictResolver.ConflictResolution.Cancel:
-                                return (success, skipped, failed);
+                            skipped++;
+                            continue;
                         }
                     }
                 }
 
-                DocumentHelper.SaveDocumentToFile(doc, outputDir2);
+                Directory.CreateDirectory(outputDir2);
+                File.WriteAllText(outputPath, doc.Text);
+                if (doc.UpdatedAt.HasValue)
+                {
+                    File.SetLastWriteTimeUtc(outputPath, doc.UpdatedAt.Value);
+                }
                 success++;
             }
             catch (Exception ex)
@@ -79,60 +79,136 @@ public class DocumentSyncService
         return (success, skipped, failed);
     }
 
-    public async Task<(int Success, int Skipped, int Failed)> UploadAsync(
-        List<FileInfo> files,
-        Func<string, DateTime?, DateTime?, Task<ConflictResolver.ConflictResolution?>>? onConflict = null,
+    public async Task<(int Success, int Skipped, int Failed)> UploadSingleAsync(
+        string documentId,
+        string documentTitle,
+        string content,
+        DateTime localTime,
+        Func<string, DateTime?, DateTime?, Task<bool>>? onConflict = null)
+    {
+        try
+        {
+            var serverDoc = await _apiService.GetDocumentAsync(documentId);
+            DateTime? serverTime = serverDoc.UpdatedAt;
+
+            if (serverTime.HasValue && serverTime.Value > localTime)
+            {
+                if (onConflict != null)
+                {
+                    var shouldOverwrite = await onConflict(documentTitle, localTime, serverTime);
+                    if (!shouldOverwrite)
+                    {
+                        return (0, 1, 0);
+                    }
+                }
+            }
+
+            await _apiService.UpdateDocumentAsync(documentId, documentTitle, content);
+            return (1, 0, 0);
+        }
+        catch (Exception ex)
+        {
+            _notificationService?.ShowError($"上传文档失败: {documentTitle} - {ex.Message}");
+            return (0, 0, 1);
+        }
+    }
+
+    public async Task<(int Success, int Skipped, int Failed)> UploadModifiedAsync(
+        List<DocumentNode> allNodes,
+        string localDocDir,
+        Func<List<DocumentUploadItem>, Task<List<DocumentUploadItem>>>? onSelectDocuments = null,
         IProgress<(int current, int total, string documentTitle)>? progress = null)
     {
         int success = 0, skipped = 0, failed = 0;
-        int current = 0;
-
-        foreach (var file in files.Where(f => f.Extension.Equals(".md", StringComparison.OrdinalIgnoreCase)))
+        
+        var uploadItems = new List<DocumentUploadItem>();
+        
+        foreach (var node in allNodes.Where(n => n.Type == NodeType.Document))
         {
-            current++;
-            progress?.Report((current, files.Count, file.Name));
+            if (string.IsNullOrEmpty(node.Id))
+                continue;
+
+            var localFilePath = Path.Combine(localDocDir, $"{node.Id}.md");
+            if (!File.Exists(localFilePath))
+                continue;
+
+            var localTime = File.GetLastWriteTimeUtc(localFilePath);
+            string content;
 
             try
             {
-                var content = File.ReadAllText(file.FullName);
-                var (metadata, text) = DocumentHelper.ParseFileContent(content);
+                content = File.ReadAllText(localFilePath);
+            }
+            catch
+            {
+                continue;
+            }
 
-                if (!metadata.TryGetValue("id", out var documentId) || string.IsNullOrWhiteSpace(documentId))
+            Document? serverDoc = null;
+            DateTime? serverTime = null;
+            
+            try
+            {
+                serverDoc = await _apiService.GetDocumentAsync(node.Id);
+                serverTime = serverDoc.UpdatedAt;
+            }
+            catch
+            {
+                continue;
+            }
+
+            if (!serverTime.HasValue || localTime > serverTime.Value)
+            {
+                uploadItems.Add(new DocumentUploadItem
                 {
-                    skipped++;
-                    continue;
-                }
+                    DocumentId = node.Id,
+                    Title = node.Name,
+                    LocalTime = localTime,
+                    ServerTime = serverTime,
+                    Content = content,
+                    Selected = true
+                });
+            }
+        }
 
-                var serverDoc = await _apiService.GetDocumentAsync(documentId);
-                DateTime? localTime = file.LastWriteTimeUtc;
-                DateTime? serverTime = serverDoc.UpdatedAt;
+        if (uploadItems.Count == 0)
+        {
+            _notificationService?.ShowInfo("没有需要上传的文档");
+            return (0, 0, 0);
+        }
 
-                if (_conflictResolver.CheckConflict(localTime, serverTime))
-                {
-                    if (onConflict != null)
-                    {
-                        var resolution = await onConflict(file.Name, localTime, serverTime);
-                        switch (resolution)
-                        {
-                            case ConflictResolver.ConflictResolution.Skip:
-                                skipped++;
-                                continue;
-                            case ConflictResolver.ConflictResolution.Cancel:
-                                return (success, skipped, failed);
-                        }
-                    }
-                }
+        if (onSelectDocuments != null)
+        {
+            uploadItems = await onSelectDocuments(uploadItems);
+        }
 
-                var title = metadata.TryGetValue("title", out var docTitle) ? docTitle : Path.GetFileNameWithoutExtension(file.Name);
-                await _apiService.UpdateDocumentAsync(documentId, title, text);
+        var selectedItems = uploadItems.Where(i => i.Selected).ToList();
+        int current = 0;
+
+        foreach (var item in selectedItems)
+        {
+            current++;
+            progress?.Report((current, selectedItems.Count, item.Title));
+
+            try
+            {
+                await _apiService.UpdateDocumentAsync(item.DocumentId, item.Title, item.Content);
                 success++;
+
+                if (item.ServerTime.HasValue)
+                {
+                    var filePath = Path.Combine(localDocDir, $"{item.DocumentId}.md");
+                    File.SetLastWriteTimeUtc(filePath, item.ServerTime.Value);
+                }
             }
             catch (Exception ex)
             {
                 failed++;
-                _notificationService?.ShowError($"上传文档失败: {file.Name} - {ex.Message}");
+                _notificationService?.ShowError($"上传文档失败: {item.Title} - {ex.Message}");
             }
         }
+
+        skipped = uploadItems.Count - selectedItems.Count;
 
         return (success, skipped, failed);
     }
@@ -145,4 +221,14 @@ public class DocumentSyncService
         name = name.Trim('.', ' ');
         return string.IsNullOrWhiteSpace(name) ? "untitled" : name[..Math.Min(name.Length, 200)];
     }
+}
+
+public class DocumentUploadItem
+{
+    public string DocumentId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public DateTime LocalTime { get; set; }
+    public DateTime? ServerTime { get; set; }
+    public string Content { get; set; } = string.Empty;
+    public bool Selected { get; set; }
 }

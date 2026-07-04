@@ -110,10 +110,10 @@ public class DocumentPreviewViewModel : ViewModelBase
             
             if (File.Exists(localFilePath))
             {
-                var localModifiedTime = File.GetLastWriteTime(localFilePath);
+                var localModifiedTime = File.GetLastWriteTimeUtc(localFilePath);
                 var serverModifiedTime = doc.UpdatedAt;
                 
-                if (localModifiedTime > serverModifiedTime)
+                if (serverModifiedTime.HasValue && localModifiedTime > serverModifiedTime.Value)
                 {
                     var shouldDownload = await ShouldRedownloadAsync(doc.Title, localModifiedTime, serverModifiedTime ?? DateTime.MinValue);
                     if (!shouldDownload)
@@ -196,6 +196,8 @@ public class DocumentPreviewViewModel : ViewModelBase
             var filePath = Path.Combine(docDir, cacheFileName);
             
             await File.WriteAllTextAsync(filePath, SourceText);
+            
+            File.SetLastWriteTimeUtc(filePath, DateTime.UtcNow);
             
             Document.Text = SourceText;
             IsModified = false;
