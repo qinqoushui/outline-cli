@@ -104,6 +104,10 @@
       </Border>
     </Grid>
 
-    <TextBlock Grid.Row="3" Text="{Binding StatusMessage}" Margin="15,10" />
+    <DockPanel Grid.Row="3" Margin="15,10">
+      <TextBlock Text="{Binding StatusMessage}" />
+      <TextBlock Text="{Binding CurrentPreview.Document.UpdatedAt, StringFormat='更新时间: {0}'}" 
+                 DockPanel.Dock="Right" />
+    </DockPanel>
   </Grid>
 </atom:Window>
