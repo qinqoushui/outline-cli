@@ -2,15 +2,14 @@ using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
 using OutlineUi.ViewModels;
 using System;
-using System.IO;
-using System.Runtime.InteropServices;
+using WinForms = System.Windows.Forms;
 
 namespace OutlineUi.Views;
 
-public partial class DocumentPreview : UserControl
+public partial class DocumentPreview : Avalonia.Controls.UserControl
 {
     private ContentControl? _previewHost;
-    private string? _currentTempFile;
+    private Microsoft.Web.WebView2.WinForms.WebView2? _webView2;
 
     public DocumentPreview()
     {
@@ -18,14 +17,51 @@ public partial class DocumentPreview : UserControl
         Loaded += DocumentPreview_Loaded;
     }
 
-    private void DocumentPreview_Loaded(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    private async void DocumentPreview_Loaded(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         _previewHost = this.FindControl<ContentControl>("PreviewHost");
         
         if (DataContext is DocumentPreviewViewModel viewModel)
         {
             viewModel.PropertyChanged += ViewModel_PropertyChanged;
-            UpdateContent(viewModel.SourceText);
+            
+            try
+            {
+                // 创建 WebView2 控件
+                _webView2 = new Microsoft.Web.WebView2.WinForms.WebView2();
+                _webView2.Dock = WinForms.DockStyle.Fill;
+                
+                // 创建 WinForms Panel 作为容器
+                var winFormsPanel = new WinForms.Panel();
+                winFormsPanel.Controls.Add(_webView2);
+                
+                // 使用 NativeControlHost 嵌入 WinForms 控件
+                var host = new Avalonia.Controls.NativeControlHost();
+                _previewHost.Content = host;
+                
+                // 通过反射设置 NativeControl
+                var property = host.GetType().GetProperty("NativeControl", 
+                    System.Reflection.BindingFlags.NonPublic | 
+                    System.Reflection.BindingFlags.Instance | 
+                    System.Reflection.BindingFlags.SetProperty);
+                property?.SetValue(host, winFormsPanel);
+                
+                // 初始化 WebView2
+                await _webView2.EnsureCoreWebView2Async();
+                
+                // 加载内容
+                UpdateContent(viewModel.SourceText);
+            }
+            catch (Exception ex)
+            {
+                _previewHost.Content = new TextBlock
+                {
+                    Text = $"WebView2 初始化失败:\n{ex.Message}\n\n请确保已安装 WebView2 Runtime",
+                    Foreground = Avalonia.Media.Brushes.Red,
+                    Padding = new Avalonia.Thickness(10),
+                    TextWrapping = Avalonia.Media.TextWrapping.Wrap
+                };
+            }
         }
     }
 
@@ -38,78 +74,19 @@ public partial class DocumentPreview : UserControl
         }
     }
 
-    private async void UpdateContent(string markdown)
+    private void UpdateContent(string markdown)
     {
-        if (_previewHost == null || string.IsNullOrEmpty(markdown))
+        if (string.IsNullOrEmpty(markdown) || _webView2?.CoreWebView2 == null)
             return;
 
         try
         {
-            // 生成 HTML
             var html = GenerateMarkdownHtml(markdown);
-            
-            // 写入临时文件
-            if (_currentTempFile != null && File.Exists(_currentTempFile))
-            {
-                File.Delete(_currentTempFile);
-            }
-            
-            _currentTempFile = Path.Combine(Path.GetTempPath(), $"outline_preview_{Guid.NewGuid():N}.html");
-            await File.WriteAllTextAsync(_currentTempFile, html);
-            
-            // 自动在浏览器中打开
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = _currentTempFile,
-                    UseShellExecute = true
-                });
-            }
-            
-            // 显示提示
-            var panel = new StackPanel
-            {
-                Orientation = Avalonia.Layout.Orientation.Vertical,
-                Spacing = 15,
-                Margin = new Avalonia.Thickness(20),
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
-            };
-
-            panel.Children.Add(new TextBlock
-            {
-                Text = "✅ 已在浏览器中打开预览",
-                FontSize = 16,
-                FontWeight = Avalonia.Media.FontWeight.Bold,
-                Foreground = Avalonia.Media.Brushes.Green
-            });
-
-            panel.Children.Add(new TextBlock
-            {
-                Text = "编辑内容后会自动更新浏览器预览",
-                FontSize = 13,
-                Foreground = Avalonia.Media.Brushes.Gray
-            });
-
-            panel.Children.Add(new TextBlock
-            {
-                Text = $"文档长度: {markdown.Length} 字符",
-                FontSize = 12,
-                Foreground = Avalonia.Media.Brushes.Gray,
-                Margin = new Avalonia.Thickness(0, 10, 0, 0)
-            });
-
-            _previewHost.Content = panel;
+            _webView2.CoreWebView2.NavigateToString(html);
         }
         catch (Exception ex)
         {
-            _previewHost.Content = new TextBlock
-            {
-                Text = $"预览错误: {ex.Message}",
-                Foreground = Avalonia.Media.Brushes.Red,
-                Padding = new Avalonia.Thickness(10)
-            };
+            Console.WriteLine($"更新预览失败: {ex.Message}");
         }
     }
 
@@ -119,9 +96,8 @@ public partial class DocumentPreview : UserControl
 <html>
 <head>
     <meta charset=""utf-8"">
-    <title>Outline Markdown 预览</title>
     <style>
-        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; padding: 40px; color: #24292f; max-width: 900px; margin: 0 auto; }}
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; padding: 20px; color: #24292f; max-width: 900px; margin: 0 auto; }}
         h1, h2, h3, h4, h5, h6 {{ margin-top: 24px; margin-bottom: 16px; font-weight: 600; }}
         h1 {{ font-size: 2em; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }}
         h2 {{ font-size: 1.5em; border-bottom: 1px solid #d0d7de; padding-bottom: .3em; }}
@@ -162,7 +138,11 @@ public partial class DocumentPreview : UserControl
         if (DataContext is DocumentPreviewViewModel viewModel)
         {
             viewModel.PropertyChanged += ViewModel_PropertyChanged;
-            UpdateContent(viewModel.SourceText);
+            
+            if (_webView2?.CoreWebView2 != null)
+            {
+                UpdateContent(viewModel.SourceText);
+            }
         }
     }
 }
