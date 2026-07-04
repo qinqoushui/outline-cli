@@ -14,10 +14,6 @@
     <vm:DocumentPreviewViewModel />
   </Design.DataContext>
 
-  <UserControl.KeyBindings>
-    <KeyBinding Gesture="Ctrl+I" Command="{Binding ToggleModeCommand}" />
-  </UserControl.KeyBindings>
-
   <Grid>
     <!-- 预览模式：使用 CodeWF.Markdown 的 MarkdownViewer -->
     <ScrollViewer IsVisible="{Binding IsPreviewMode}"

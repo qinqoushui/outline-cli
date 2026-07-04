@@ -13,6 +13,11 @@
     <vm:MainViewModel />
   </Design.DataContext>
 
+  <atom:Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+I" Command="{Binding CurrentPreview.ToggleModeCommand}" />
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding CurrentPreview.SaveCommand}" />
+  </atom:Window.KeyBindings>
+
   <Grid RowDefinitions="Auto, Auto, *, Auto">
     <Menu Grid.Row="0" Margin="0,0,0,5">
       <MenuItem Header="文件(_F)">
