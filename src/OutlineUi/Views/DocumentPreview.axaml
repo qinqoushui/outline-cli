@@ -3,7 +3,6 @@
              xmlns:vm="using:OutlineUi.ViewModels"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:avaloniaEdit="using:AvaloniaEdit"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
              x:Class="OutlineUi.Views.DocumentPreview"
              x:DataType="vm:DocumentPreviewViewModel">
@@ -35,15 +34,17 @@
                    FontSize="14" />
       </ScrollViewer>
       
-      <!-- 编辑模式：代码编辑器 -->
-      <avaloniaEdit:TextEditor
-          IsVisible="{Binding IsEditMode}"
-          SyntaxHighlighting="Markdown"
-          ShowLineNumbers="True"
-          FontFamily="Consolas"
-          FontSize="14"
-          Document="{Binding SourceText}"
-          IsReadOnly="{Binding !IsEditMode}" />
+      <!-- 编辑模式：多行文本框 -->
+      <ScrollViewer IsVisible="{Binding IsEditMode}">
+        <TextBox Text="{Binding SourceText, Mode=TwoWay}"
+                 AcceptsReturn="True"
+                 AcceptsTab="True"
+                 FontFamily="Consolas"
+                 FontSize="14"
+                 Padding="10"
+                 BorderThickness="0"
+                 Background="Transparent" />
+      </ScrollViewer>
     </Grid>
   </DockPanel>
 </UserControl>
