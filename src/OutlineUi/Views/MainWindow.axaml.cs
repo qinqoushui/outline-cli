@@ -13,6 +13,7 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
 {
     private readonly MainViewModel _viewModel;
     private DocumentPreviewViewModel? _currentPreviewViewModel;
+    private Grid? _contentGrid;
 
     public MainWindow()
     {
@@ -25,6 +26,7 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
         DataContext = _viewModel;
         
         Loaded += MainWindow_Loaded;
+        _viewModel.PropertyChanged += ViewModel_PropertyChanged;
     }
 
     private void MainWindow_Loaded(object? sender, RoutedEventArgs e)
@@ -32,6 +34,32 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
         if (DocumentTree != null)
         {
             DocumentTree.DoubleTapped += DocumentTree_DoubleTapped;
+        }
+        
+        _contentGrid = this.FindControl<Grid>("ContentGrid");
+    }
+
+    private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainViewModel.IsNavigationVisible) && _contentGrid != null)
+        {
+            UpdateGridLayout();
+        }
+    }
+
+    private void UpdateGridLayout()
+    {
+        if (_contentGrid == null) return;
+
+        if (_viewModel.IsNavigationVisible)
+        {
+            _contentGrid.ColumnDefinitions[0].Width = new Avalonia.Controls.GridLength(250);
+            _contentGrid.ColumnDefinitions[1].Width = new Avalonia.Controls.GridLength(5);
+        }
+        else
+        {
+            _contentGrid.ColumnDefinitions[0].Width = new Avalonia.Controls.GridLength(0);
+            _contentGrid.ColumnDefinitions[1].Width = new Avalonia.Controls.GridLength(0);
         }
     }
 
