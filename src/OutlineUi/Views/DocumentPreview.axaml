@@ -39,12 +39,15 @@
       
       <!-- 编辑模式：多行文本编辑器 -->
       <Border IsVisible="{Binding IsEditMode}"
-              Background="White">
+              Background="White"
+              BorderBrush="#E0E0E0"
+              BorderThickness="1">
         <atom:TextArea Text="{Binding SourceText, Mode=TwoWay}"
                        PlaceholderText="在此输入 Markdown 内容..."
                        FontFamily="Consolas,Courier New,Monaco"
                        FontSize="14"
-                       Padding="10" />
+                       Padding="10"
+                       IsAutoSize="True" />
       </Border>
     </Grid>
   </DockPanel>
