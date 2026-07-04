@@ -95,10 +95,13 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
 
     private void ViewModel_MessageRequested(object? sender, string message)
     {
+        Console.WriteLine($"[DEBUG] ViewModel_MessageRequested 收到消息: {message}");
+        
         // 在状态栏显示消息
         if (_viewModel != null)
         {
             _viewModel.StatusMessage = message;
+            Console.WriteLine($"[DEBUG] StatusMessage 已设置为: {message}");
             
             // 3秒后恢复为"就绪"
             Task.Delay(3000).ContinueWith(_ =>

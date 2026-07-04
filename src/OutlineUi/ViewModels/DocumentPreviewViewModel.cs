@@ -126,10 +126,14 @@ public class DocumentPreviewViewModel : ViewModelBase
             await _apiService.UpdateDocumentAsync(Document.Id, Document.Title, SourceText);
             Document.Text = SourceText;
             IsModified = false;
+            
+            Console.WriteLine($"[DEBUG] SaveAsync: 准备触发 MessageRequested 事件");
             MessageRequested?.Invoke(this, "保存成功");
+            Console.WriteLine($"[DEBUG] SaveAsync: MessageRequested 事件已触发");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[DEBUG] SaveAsync 异常: {ex.Message}");
             MessageRequested?.Invoke(this, $"保存失败: {ex.Message}");
         }
         finally
