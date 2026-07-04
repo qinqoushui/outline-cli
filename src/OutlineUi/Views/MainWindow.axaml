@@ -33,6 +33,24 @@
     </Menu>
 
     <DockPanel Grid.Row="1" Margin="10">
+      <StackPanel Orientation="Horizontal" Spacing="10" DockPanel.Dock="Right">
+        <atom:Button Command="{Binding CurrentPreview.ToggleModeCommand}"
+                     IsVisible="{Binding CurrentPreview.IsPreviewMode}"
+                     ToolTip.Tip="切换到编辑模式 (Ctrl+I)">
+          <antdicons:AntDesignIconProvider Kind="EditOutlined" />
+        </atom:Button>
+        <atom:Button Command="{Binding CurrentPreview.ToggleModeCommand}"
+                     IsVisible="{Binding CurrentPreview.IsEditMode}"
+                     ToolTip.Tip="切换到预览模式 (Ctrl+I)">
+          <antdicons:AntDesignIconProvider Kind="EyeOutlined" />
+        </atom:Button>
+        <atom:Button Command="{Binding CurrentPreview.SaveCommand}" 
+                     IsEnabled="{Binding CurrentPreview.IsModified}"
+                     ToolTip.Tip="保存">
+          <antdicons:AntDesignIconProvider Kind="SaveOutlined" />
+        </atom:Button>
+      </StackPanel>
+      
       <StackPanel Orientation="Horizontal" Spacing="10">
         <atom:Button Command="{Binding RefreshCommand}" 
                      Icon="{antdicons:AntDesignIconProvider Kind=SyncOutlined}"
@@ -54,24 +72,6 @@
             </DataTemplate>
           </ComboBox.ItemTemplate>
         </ComboBox>
-      </StackPanel>
-      
-      <StackPanel Orientation="Horizontal" Spacing="10" DockPanel.Dock="Right">
-        <atom:Button Command="{Binding CurrentPreview.ToggleModeCommand}"
-                     IsVisible="{Binding CurrentPreview.IsPreviewMode}"
-                     ToolTip.Tip="切换到编辑模式 (Ctrl+I)">
-          <antdicons:AntDesignIconProvider Kind="EditOutlined" />
-        </atom:Button>
-        <atom:Button Command="{Binding CurrentPreview.ToggleModeCommand}"
-                     IsVisible="{Binding CurrentPreview.IsEditMode}"
-                     ToolTip.Tip="切换到预览模式 (Ctrl+I)">
-          <antdicons:AntDesignIconProvider Kind="EyeOutlined" />
-        </atom:Button>
-        <atom:Button Command="{Binding CurrentPreview.SaveCommand}" 
-                     IsEnabled="{Binding CurrentPreview.IsModified}"
-                     ToolTip.Tip="保存">
-          <antdicons:AntDesignIconProvider Kind="SaveOutlined" />
-        </atom:Button>
       </StackPanel>
     </DockPanel>
 
@@ -105,9 +105,9 @@
     </Grid>
 
     <DockPanel Grid.Row="3" Margin="15,10">
-      <TextBlock Text="{Binding StatusMessage}" />
       <TextBlock Text="{Binding CurrentPreview.Document.UpdatedAt, StringFormat='更新时间: {0}'}" 
                  DockPanel.Dock="Right" />
+      <TextBlock Text="{Binding StatusMessage}" />
     </DockPanel>
   </Grid>
 </atom:Window>
