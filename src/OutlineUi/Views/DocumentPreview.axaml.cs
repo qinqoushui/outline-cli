@@ -10,6 +10,7 @@ namespace OutlineUi.Views;
 public partial class DocumentPreview : UserControl
 {
     private ContentControl? _previewHost;
+    private string? _currentTempFile;
 
     public DocumentPreview()
     {
@@ -37,90 +38,67 @@ public partial class DocumentPreview : UserControl
         }
     }
 
-    private void UpdateContent(string markdown)
+    private async void UpdateContent(string markdown)
     {
         if (_previewHost == null || string.IsNullOrEmpty(markdown))
             return;
 
         try
         {
+            // 生成 HTML
+            var html = GenerateMarkdownHtml(markdown);
+            
+            // 写入临时文件
+            if (_currentTempFile != null && File.Exists(_currentTempFile))
+            {
+                File.Delete(_currentTempFile);
+            }
+            
+            _currentTempFile = Path.Combine(Path.GetTempPath(), $"outline_preview_{Guid.NewGuid():N}.html");
+            await File.WriteAllTextAsync(_currentTempFile, html);
+            
+            // 自动在浏览器中打开
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = _currentTempFile,
+                    UseShellExecute = true
+                });
+            }
+            
+            // 显示提示
             var panel = new StackPanel
             {
                 Orientation = Avalonia.Layout.Orientation.Vertical,
                 Spacing = 15,
-                Margin = new Avalonia.Thickness(20)
+                Margin = new Avalonia.Thickness(20),
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center
             };
 
-            // 标题
             panel.Children.Add(new TextBlock
             {
-                Text = "📄 Markdown 文档预览",
-                FontSize = 18,
+                Text = "✅ 已在浏览器中打开预览",
+                FontSize = 16,
                 FontWeight = Avalonia.Media.FontWeight.Bold,
-                Margin = new Avalonia.Thickness(0, 0, 0, 10)
+                Foreground = Avalonia.Media.Brushes.Green
             });
 
-            // 信息
+            panel.Children.Add(new TextBlock
+            {
+                Text = "编辑内容后会自动更新浏览器预览",
+                FontSize = 13,
+                Foreground = Avalonia.Media.Brushes.Gray
+            });
+
             panel.Children.Add(new TextBlock
             {
                 Text = $"文档长度: {markdown.Length} 字符",
                 FontSize = 12,
-                Foreground = Avalonia.Media.Brushes.Gray
-            });
-
-            // 浏览器预览按钮
-            var browserBtn = new Button
-            {
-                Content = "🌐 在浏览器中预览",
-                Padding = new Avalonia.Thickness(20, 10),
-                Background = Avalonia.Media.Brushes.LightBlue,
-                FontSize = 14,
+                Foreground = Avalonia.Media.Brushes.Gray,
                 Margin = new Avalonia.Thickness(0, 10, 0, 0)
-            };
-
-            browserBtn.Click += async (s, e) =>
-            {
-                try
-                {
-                    var html = GenerateMarkdownHtml(markdown);
-                    var tempFile = Path.Combine(Path.GetTempPath(), $"outline_md_{Guid.NewGuid():N}.html");
-                    await File.WriteAllTextAsync(tempFile, html);
-
-                    if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                    {
-                        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                        {
-                            FileName = tempFile,
-                            UseShellExecute = true
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"打开浏览器失败: {ex.Message}");
-                }
-            };
-
-            panel.Children.Add(browserBtn);
-
-            // 简单预览
-            panel.Children.Add(new TextBlock
-            {
-                Text = "预览:",
-                FontSize = 14,
-                FontWeight = Avalonia.Media.FontWeight.Bold,
-                Margin = new Avalonia.Thickness(0, 15, 0, 5)
             });
-
-            var previewText = new TextBlock
-            {
-                Text = markdown.Length > 500 ? markdown.Substring(0, 500) + "..." : markdown,
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap,
-                FontSize = 13,
-                Foreground = Avalonia.Media.Brushes.DarkGray,
-                MaxWidth = 800
-            };
-            panel.Children.Add(previewText);
 
             _previewHost.Content = panel;
         }
@@ -129,7 +107,8 @@ public partial class DocumentPreview : UserControl
             _previewHost.Content = new TextBlock
             {
                 Text = $"预览错误: {ex.Message}",
-                Foreground = Avalonia.Media.Brushes.Red
+                Foreground = Avalonia.Media.Brushes.Red,
+                Padding = new Avalonia.Thickness(10)
             };
         }
     }
