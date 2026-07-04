@@ -167,36 +167,13 @@ public class DocumentPreviewViewModel : ViewModelBase
 
     private async Task SaveAsync()
     {
-        if (_apiService == null || Document == null) return;
+        if (Document == null) return;
 
         IsLoading = true;
         
         try
         {
-            // 先从服务器获取最新版本检查时间
-            var latestDoc = await _apiService.GetDocumentAsync(Document.Id);
-            
-            // 检查服务器版本是否比我们打开时更新
-            if (latestDoc.UpdatedAt > Document.UpdatedAt)
-            {
-                Console.WriteLine($"[DEBUG] 服务器版本已更新: {latestDoc.UpdatedAt} > {Document.UpdatedAt}");
-                
-                // 询问是否覆盖
-                var shouldOverwrite = await ShouldOverwriteServerAsync(Document.Title, Document.UpdatedAt, latestDoc.UpdatedAt);
-                if (!shouldOverwrite)
-                {
-                    MessageRequested?.Invoke(this, "保存已取消，服务器版本已更新");
-                    return;
-                }
-            }
-            
-            // 保存到服务器
-            await _apiService.UpdateDocumentAsync(Document.Id, Document.Title, SourceText);
-            Document.Text = SourceText;
-            Document.UpdatedAt = DateTime.Now;
-            IsModified = false;
-            
-            // 保存到本地文件
+            // 只保存到本地文件，不上传到服务器
             var docDir = Path.Combine(AppContext.BaseDirectory, "doc");
             if (!Directory.Exists(docDir))
             {
@@ -210,9 +187,11 @@ public class DocumentPreviewViewModel : ViewModelBase
             
             await File.WriteAllTextAsync(filePath, SourceText);
             
-            Console.WriteLine($"[DEBUG] SaveAsync: 准备触发 MessageRequested 事件");
-            MessageRequested?.Invoke(this, $"保存成功，已保存到: {fileName}");
-            Console.WriteLine($"[DEBUG] SaveAsync: MessageRequested 事件已触发");
+            Document.Text = SourceText;
+            IsModified = false;
+            
+            Console.WriteLine($"[DEBUG] SaveAsync: 已保存到本地文件 {fileName}");
+            MessageRequested?.Invoke(this, $"已保存到本地: {fileName}");
         }
         catch (Exception ex)
         {
@@ -223,20 +202,6 @@ public class DocumentPreviewViewModel : ViewModelBase
         {
             IsLoading = false;
         }
-    }
-
-    private async Task<bool> ShouldOverwriteServerAsync(string title, DateTime localTime, DateTime serverTime)
-    {
-        var tcs = new TaskCompletionSource<bool>();
-        ConflictCheckRequested?.Invoke(this, new ConflictCheckEventArgs
-        {
-            DocumentTitle = title,
-            LocalTime = localTime,
-            ServerTime = serverTime,
-            Operation = "上传",
-            ResultHandler = result => tcs.SetResult(result)
-        });
-        return await tcs.Task;
     }
 
     private void Cancel()

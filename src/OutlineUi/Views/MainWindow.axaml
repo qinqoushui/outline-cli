@@ -83,7 +83,7 @@
         <atom:Button Command="{Binding DownloadCommand}" IsVisible="False"
                      Icon="{antdicons:AntDesignIconProvider Kind=DownloadOutlined}"
                      Content="下载"/>
-        <atom:Button Command="{Binding UploadCommand}"   IsVisible="False"
+        <atom:Button Command="{Binding UploadCommand}"  
                      Icon="{antdicons:AntDesignIconProvider Kind=UploadOutlined}"
                      Content="上传"/>
         <TextBox Text="{Binding SearchKeyword}" PlaceholderText="搜索文档..." Width="200" />
