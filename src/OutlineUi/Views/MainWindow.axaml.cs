@@ -80,6 +80,7 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
             
             var viewModel = new DocumentPreviewViewModel(_viewModel.ApiService);
             viewModel.MessageRequested += ViewModel_MessageRequested;
+            viewModel.ConflictCheckRequested += ViewModel_ConflictCheckRequested;
             await viewModel.LoadDocumentAsync(node.Id);
             var preview = new DocumentPreview
             {
@@ -91,6 +92,22 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
             _viewModel.CurrentPreview = viewModel;
             _currentPreviewViewModel = viewModel;
         }
+    }
+
+    private void ViewModel_ConflictCheckRequested(object? sender, ViewModels.ConflictCheckEventArgs e)
+    {
+        // 使用 ConflictDialogViewModel 显示冲突对话框
+        var dialog = new ConflictDialogViewModel();
+        dialog.DocumentTitle = e.DocumentTitle;
+        dialog.LocalTime = e.LocalTime;
+        dialog.ServerTime = e.ServerTime;
+        dialog.Operation = e.Operation;
+        
+        _ = Task.Run(async () =>
+        {
+            var result = await dialog.ShowAsync();
+            e.ResultHandler(result);
+        });
     }
 
     private void ViewModel_MessageRequested(object? sender, string message)
