@@ -23,6 +23,7 @@
   <atom:Window.KeyBindings>
     <KeyBinding Gesture="Ctrl+I" Command="{Binding CurrentPreview.ToggleModeCommand}" />
     <KeyBinding Gesture="Ctrl+S" Command="{Binding CurrentPreview.SaveCommand}" />
+    <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding UploadCurrentCommand}" />
     <KeyBinding Gesture="Ctrl+B" Command="{Binding ToggleNavigationCommand}" />
   </atom:Window.KeyBindings>
 

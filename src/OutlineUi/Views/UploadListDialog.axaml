@@ -9,7 +9,8 @@
              x:DataType="vm:UploadListDialogViewModel"
              Width="800"
              Height="550"
-             Title="批量上传文档">
+             Title="批量上传文档"
+             WindowStartupLocation="CenterScreen">
 
   <Design.DataContext>
     <vm:UploadListDialogViewModel />
@@ -36,11 +37,11 @@
                                  Binding="{Binding DocumentTitle}" 
                                  Width="*" />
         <atom:DataGridTextColumn Header="本地修改时间" 
-                                 Binding="{Binding LocalTime, StringFormat='{}{0:MM-dd HH:mm:ss}'}" 
-                                 Width="140" />
+                                 Binding="{Binding LocalTimeDisplay, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" 
+                                 Width="160" />
         <atom:DataGridTextColumn Header="服务器时间" 
-                                 Binding="{Binding ServerTime, StringFormat='{}{0:MM-dd HH:mm:ss}'}" 
-                                 Width="140" />
+                                 Binding="{Binding ServerTimeDisplay, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}" 
+                                 Width="160" />
         <atom:DataGridTemplateColumn Header="状态" Width="80">
           <atom:DataGridTemplateColumn.CellTemplate>
             <DataTemplate>

@@ -455,51 +455,40 @@ public class MainViewModel : ViewModelBase
                 StatusMessage = $"正在上传: {p.current}/{p.total} - {p.documentTitle}";
             });
 
-            var (success, skipped, failed) = await _syncService.UploadModifiedAsync(
-                DocumentNodes.ToList(),
-                docDir,
-                async (items) =>
+            var uploadItems = await _syncService.RetrieveUploadItemsAsync(DocumentNodes.ToList(), docDir);
+
+            if (uploadItems.Count == 0)
+            {
+                _notificationService?.ShowInfo("没有需要上传的文档");
+                StatusMessage = "上传完成: 没有需要上传的文档";
+                return;
+            }
+
+            var dialog = _uploadListDialogViewModelFactory();
+            foreach (var item in uploadItems)
+            {
+                dialog.Files.Add(new UploadFileInfo
                 {
-                    var dialog = _uploadListDialogViewModelFactory();
-                    foreach (var item in items)
-                    {
-                        dialog.Files.Add(new UploadFileInfo
-                        {
-                            FilePath = Path.Combine(docDir, $"{item.DocumentId}.md"),
-                            FileName = $"{item.DocumentId}.md",
-                            DocumentId = item.DocumentId,
-                            DocumentTitle = item.Title,
-                            LocalTime = item.LocalTime,
-                            ServerTime = item.ServerTime,
-                            HasConflict = item.ServerTime.HasValue && item.LocalTime > item.ServerTime.Value,
-                            IsSelected = item.Selected
-                        });
-                    }
+                    FilePath = Path.Combine(docDir, $"{item.DocumentId}.md"),
+                    FileName = $"{item.DocumentId}.md",
+                    DocumentId = item.DocumentId,
+                    DocumentTitle = item.Title,
+                    LocalTime = item.LocalTime,
+                    ServerTime = item.ServerTime,
+                    HasConflict = item.HasConflict,
+                    IsSelected = item.Selected
+                });
+            }
 
-                    var confirmed = await dialog.ShowAsync();
-                    if (!confirmed)
-                    {
-                        foreach (var item in items)
-                        {
-                            item.Selected = false;
-                        }
-                    }
-                    else
-                    {
-                        foreach (var item in items)
-                        {
-                            var dialogItem = dialog.Files.FirstOrDefault(f => f.DocumentId == item.DocumentId);
-                            if (dialogItem != null)
-                            {
-                                item.Selected = dialogItem.IsSelected;
-                            }
-                        }
-                    }
-                    return items;
-                },
-                progress);
+            dialog.LocalDocDir = docDir;
+            dialog.RetrieveUploadItemsCallback = async (_) => 
+                await _syncService.RetrieveUploadItemsAsync(DocumentNodes.ToList(), docDir);
+            dialog.UploadCallback = async (items) => 
+                await _syncService.UploadDocumentsAsync(items, docDir, progress);
 
-            StatusMessage = $"上传完成: 成功 {success}, 跳过 {skipped}, 失败 {failed}";
+            await dialog.ShowAsync();
+
+            StatusMessage = "上传完成";
         }
         catch (Exception ex)
         {

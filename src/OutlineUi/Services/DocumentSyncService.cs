@@ -113,16 +113,53 @@ public class DocumentSyncService
         }
     }
 
-    public async Task<(int Success, int Skipped, int Failed)> UploadModifiedAsync(
+    public async Task<List<DocumentUploadItem>> RetrieveUploadItemsAsync(
         List<DocumentNode> allNodes,
+        string localDocDir)
+    {
+        return await RetrieveUploadItems(allNodes, localDocDir);
+    }
+
+    public async Task<(int Success, int Failed)> UploadDocumentsAsync(
+        List<DocumentUploadItem> items,
         string localDocDir,
-        Func<List<DocumentUploadItem>, Task<List<DocumentUploadItem>>>? onSelectDocuments = null,
         IProgress<(int current, int total, string documentTitle)>? progress = null)
     {
-        int success = 0, skipped = 0, failed = 0;
-        
+        int success = 0, failed = 0;
+        int current = 0;
+
+        foreach (var item in items.Where(i => i.Selected))
+        {
+            current++;
+            progress?.Report((current, items.Count, item.Title));
+
+            try
+            {
+                var updatedDoc = await _apiService.UpdateDocumentAsync(item.DocumentId, item.Title, item.Content);
+                success++;
+
+                if (updatedDoc.UpdatedAt.HasValue)
+                {
+                    var filePath = Path.Combine(localDocDir, $"{item.DocumentId}.md");
+                    if (File.Exists(filePath))
+                    {
+                        File.SetLastWriteTimeUtc(filePath, updatedDoc.UpdatedAt.Value);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _notificationService?.ShowError($"上传文档失败: {item.Title} - {ex.Message}");
+                failed++;
+            }
+        }
+
+        return (success, failed);
+    }
+
+    private async Task<List<DocumentUploadItem>> RetrieveUploadItems(List<DocumentNode> allNodes, string localDocDir)
+    {
         var uploadItems = new List<DocumentUploadItem>();
-        
         var allDocumentNodes = GetAllDocumentNodes(allNodes);
 
         foreach (var node in allDocumentNodes)
@@ -159,7 +196,10 @@ public class DocumentSyncService
                 continue;
             }
 
-            if (localTime > serverTime)
+            bool hasConflict = serverTime.HasValue && serverTime.Value > localTime;
+            bool needsUpload = localTime > serverTime;
+            
+            if (needsUpload || hasConflict)
             {
                 uploadItems.Add(new DocumentUploadItem
                 {
@@ -168,52 +208,13 @@ public class DocumentSyncService
                     LocalTime = localTime,
                     ServerTime = serverTime,
                     Content = content,
-                    Selected = true
+                    Selected = needsUpload && !hasConflict,
+                    HasConflict = hasConflict
                 });
             }
         }
 
-        if (uploadItems.Count == 0)
-        {
-            _notificationService?.ShowInfo("没有需要上传的文档");
-            return (0, 0, 0);
-        }
-
-        if (onSelectDocuments != null)
-        {
-            uploadItems = await onSelectDocuments(uploadItems);
-        }
-
-        var selectedItems = uploadItems.Where(i => i.Selected).ToList();
-        int current = 0;
-
-        foreach (var item in selectedItems)
-        {
-            current++;
-            progress?.Report((current, selectedItems.Count, item.Title));
-
-            try
-            {
-                var updatedDoc = await _apiService.UpdateDocumentAsync(item.DocumentId, item.Title, item.Content);
-                success++;
-
-                if (updatedDoc.UpdatedAt.HasValue)
-                {
-                    var filePath = Path.Combine(localDocDir, $"{item.DocumentId}.md");
-                    if (File.Exists(filePath))
-                    {
-                        File.SetLastWriteTimeUtc(filePath, updatedDoc.UpdatedAt.Value);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _notificationService?.ShowError($"上传文档失败: {item.Title} - {ex.Message}");
-                failed++;
-            }
-        }
-
-        return (success, skipped, failed);
+        return uploadItems;
     }
 
     private List<DocumentNode> GetAllDocumentNodes(List<DocumentNode> nodes)
@@ -224,6 +225,10 @@ public class DocumentSyncService
             if (node.Type == NodeType.Document)
             {
                 result.Add(node);
+                if (node.Children != null && node.Children.Count > 0)
+                {
+                    result.AddRange(GetAllDocumentNodes(node.Children.ToList()));
+                }
             }
             else if (node.Type == NodeType.Collection && node.Children != null)
             {
@@ -251,4 +256,5 @@ public class DocumentUploadItem
     public DateTime? ServerTime { get; set; }
     public string Content { get; set; } = string.Empty;
     public bool Selected { get; set; }
+    public bool HasConflict { get; set; }
 }
