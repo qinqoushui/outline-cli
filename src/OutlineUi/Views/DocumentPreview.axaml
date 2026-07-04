@@ -3,7 +3,6 @@
              xmlns:vm="using:OutlineUi.ViewModels"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:markdown="using:Markdown.Avalonia"
              xmlns:avaloniaEdit="using:AvaloniaEdit"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
              x:Class="OutlineUi.Views.DocumentPreview"
@@ -18,21 +17,25 @@
       <RadioButton Content="预览模式" GroupName="ViewMode" IsChecked="{Binding IsPreviewMode}" />
       <RadioButton Content="源码模式" GroupName="ViewMode" IsChecked="{Binding IsEditMode}" />
       <Button Command="{Binding SaveCommand}" IsEnabled="{Binding IsModified}">
-        <StackPanel Orientation="Horizontal" Spacing="5">
-          <TextBlock Text="保存" />
-        </StackPanel>
+        <TextBlock Text="保存" />
       </Button>
       <Button Command="{Binding CancelCommand}" IsEnabled="{Binding IsModified}">
-        <StackPanel Orientation="Horizontal" Spacing="5">
-          <TextBlock Text="取消" />
-        </StackPanel>
+        <TextBlock Text="取消" />
       </Button>
     </StackPanel>
 
     <TextBlock DockPanel.Dock="Bottom" Margin="10" Text="{Binding Document.UpdatedAt, StringFormat='更新时间: {0}'}" />
 
     <Grid>
-      <markdown:MarkdownScrollViewer IsVisible="{Binding IsPreviewMode}" Markdown="{Binding SourceText}" />
+      <!-- 预览模式：简单文本显示 -->
+      <ScrollViewer IsVisible="{Binding IsPreviewMode}">
+        <TextBlock Text="{Binding SourceText}" 
+                   TextWrapping="Wrap"
+                   Padding="10"
+                   FontSize="14" />
+      </ScrollViewer>
+      
+      <!-- 编辑模式：代码编辑器 -->
       <avaloniaEdit:TextEditor
           IsVisible="{Binding IsEditMode}"
           SyntaxHighlighting="Markdown"
