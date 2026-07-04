@@ -80,14 +80,13 @@
       </StackPanel>
     </DockPanel>
 
-    <Grid Grid.Row="2" ColumnDefinitions="Auto,Auto,*" Margin="10,0">
+    <Grid Grid.Row="2" ColumnDefinitions="250,5,*" Margin="10,0">
       <Border Grid.Column="0" 
               Background="#FAFAFA" 
               CornerRadius="8" 
               BorderBrush="#E0E0E0"
               BorderThickness="1"
               Padding="8"
-              Width="250"
               MinWidth="150"
               MaxWidth="400">
         <atom:TreeView x:Name="DocumentTree"
@@ -102,8 +101,8 @@
       </Border>
 
       <GridSplitter Grid.Column="1" 
-                    Width="5"
-                    HorizontalAlignment="Center"
+                    ResizeDirection="Columns"
+                    HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
                     Background="Transparent"
                     ShowsPreview="True" />
