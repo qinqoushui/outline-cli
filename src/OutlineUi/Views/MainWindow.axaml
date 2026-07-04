@@ -52,8 +52,13 @@
         </atom:Button>
         <atom:Button Command="{Binding CurrentPreview.SaveCommand}" 
                      IsEnabled="{Binding CurrentPreview.IsModified}"
-                     ToolTip.Tip="保存">
+                     ToolTip.Tip="保存 (Ctrl+S)">
           <antdicons:AntDesignIconProvider Kind="SaveOutlined" />
+        </atom:Button>
+        <atom:Button Command="{Binding UploadCurrentCommand}" 
+                     IsEnabled="{Binding CurrentPreview.Document}"
+                     ToolTip.Tip="上传当前文档">
+          <antdicons:AntDesignIconProvider Kind="CloudUploadOutlined" />
         </atom:Button>
       </StackPanel>
       

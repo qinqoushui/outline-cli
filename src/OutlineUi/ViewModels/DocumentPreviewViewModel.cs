@@ -123,12 +123,27 @@ public class DocumentPreviewViewModel : ViewModelBase
         
         try
         {
+            // 保存到服务器
             await _apiService.UpdateDocumentAsync(Document.Id, Document.Title, SourceText);
             Document.Text = SourceText;
             IsModified = false;
             
+            // 保存到本地文件
+            var docDir = Path.Combine(AppContext.BaseDirectory, "doc");
+            if (!Directory.Exists(docDir))
+            {
+                Directory.CreateDirectory(docDir);
+            }
+            
+            var fileName = $"{Document.Title}.md";
+            // 移除文件名中的非法字符
+            fileName = string.Join("_", fileName.Split(Path.GetInvalidFileNameChars()));
+            var filePath = Path.Combine(docDir, fileName);
+            
+            await File.WriteAllTextAsync(filePath, SourceText);
+            
             Console.WriteLine($"[DEBUG] SaveAsync: 准备触发 MessageRequested 事件");
-            MessageRequested?.Invoke(this, "保存成功");
+            MessageRequested?.Invoke(this, $"保存成功，已保存到: {fileName}");
             Console.WriteLine($"[DEBUG] SaveAsync: MessageRequested 事件已触发");
         }
         catch (Exception ex)

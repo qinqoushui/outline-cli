@@ -88,6 +88,7 @@ public class MainViewModel : ViewModelBase
     public ICommand RefreshCommand { get; }
     public ICommand DownloadCommand { get; }
     public ICommand UploadCommand { get; }
+    public ICommand UploadCurrentCommand { get; }
     public ICommand ConfigCommand { get; }
 
     public MainViewModel(
@@ -102,6 +103,7 @@ public class MainViewModel : ViewModelBase
         RefreshCommand = new AsyncRelayCommand(LoadDocumentsAsync);
         DownloadCommand = new AsyncRelayCommand(DownloadSelectedAsync, CanDownload);
         UploadCommand = new AsyncRelayCommand(UploadLocalAsync);
+        UploadCurrentCommand = new AsyncRelayCommand(UploadCurrentAsync, CanUploadCurrent);
         ConfigCommand = new RelayCommand(() => OpenConfigDialog());
         ToggleNavigationCommand = new RelayCommand(ToggleNavigation);
         
@@ -399,6 +401,79 @@ public class MainViewModel : ViewModelBase
     {
         var viewModel = _configViewModelFactory();
         _ = viewModel.ShowAsync();
+    }
+
+    private bool CanUploadCurrent()
+    {
+        return CurrentPreview != null && CurrentPreview.Document != null;
+    }
+
+    private async Task UploadCurrentAsync()
+    {
+        if (_syncService == null || CurrentPreview?.Document == null) return;
+
+        var document = CurrentPreview.Document;
+        var docDir = Path.Combine(AppContext.BaseDirectory, "doc");
+        if (!Directory.Exists(docDir))
+        {
+            Directory.CreateDirectory(docDir);
+        }
+
+        var fileName = $"{document.Title}.md";
+        fileName = string.Join("_", fileName.Split(Path.GetInvalidFileNameChars()));
+        var filePath = Path.Combine(docDir, fileName);
+
+        // 如果当前有修改，先保存
+        if (CurrentPreview.IsModified)
+        {
+            await File.WriteAllTextAsync(filePath, CurrentPreview.SourceText);
+        }
+        else if (!File.Exists(filePath))
+        {
+            // 如果文件不存在，创建它
+            await File.WriteAllTextAsync(filePath, document.Text);
+        }
+
+        IsLoading = true;
+        StatusMessage = $"正在上传: {document.Title}";
+        
+        try
+        {
+            var fileInfo = new FileInfo(filePath);
+            var (success, skipped, failed) = await _syncService.UploadAsync(
+                new List<FileInfo> { fileInfo },
+                async (title, localTime, serverTime) =>
+                {
+                    var dialog = _conflictDialogViewModelFactory();
+                    dialog.DocumentTitle = title;
+                    dialog.LocalTime = localTime;
+                    dialog.ServerTime = serverTime;
+                    dialog.Operation = "上传";
+                    return await dialog.ShowAsync();
+                },
+                null);
+
+            if (success > 0)
+            {
+                StatusMessage = $"上传成功: {document.Title}";
+            }
+            else if (skipped > 0)
+            {
+                StatusMessage = $"上传跳过: {document.Title} (服务器版本更新)";
+            }
+            else
+            {
+                StatusMessage = $"上传失败: {document.Title}";
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"上传失败: {ex.Message}";
+        }
+        finally
+        {
+            IsLoading = false;
+        }
     }
 
     private static List<DocumentNode> GetAllSelectedDocuments(DocumentNode node)
