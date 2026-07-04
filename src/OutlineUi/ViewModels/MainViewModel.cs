@@ -116,6 +116,44 @@ public class MainViewModel : ViewModelBase
     public ICommand UploadCommand { get; }
     public ICommand UploadCurrentCommand { get; }
     public ICommand ConfigCommand { get; }
+    public ICommand ToggleThemeCommand { get; }
+
+    private bool _isDarkMode;
+    public bool IsDarkMode
+    {
+        get => _isDarkMode;
+        set
+        {
+            if (SetProperty(ref _isDarkMode, value))
+            {
+                ApplyTheme(value);
+                _configService.SetTheme(value ? "Dark" : "Light");
+                OnPropertyChanged(nameof(ThemeIcon));
+            }
+        }
+    }
+
+    public object ThemeIcon => new AtomUI.Icons.AntDesign.AntDesignIconProvider
+    {
+        Kind = _isDarkMode ? AtomUI.Icons.AntDesign.AntDesignIconKind.MoonOutlined 
+                           : AtomUI.Icons.AntDesign.AntDesignIconKind.SunOutlined
+    };
+
+    private void ApplyTheme(bool isDark)
+    {
+        var app = Avalonia.Application.Current;
+        if (app != null)
+        {
+            if (isDark)
+            {
+                app.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
+            }
+            else
+            {
+                app.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light;
+            }
+        }
+    }
 
     public MainViewModel(
         ConfigService configService,
@@ -136,8 +174,11 @@ public class MainViewModel : ViewModelBase
         UploadCurrentCommand = new AsyncRelayCommand(UploadCurrentAsync, CanUploadCurrent);
         ConfigCommand = new RelayCommand(() => OpenConfigDialog());
         ToggleNavigationCommand = new RelayCommand(ToggleNavigation);
+        ToggleThemeCommand = new RelayCommand(() => IsDarkMode = !IsDarkMode);
         
-        // 自动初始化
+        var savedTheme = _configService.GetTheme();
+        IsDarkMode = savedTheme == "Dark";
+        
         _ = InitializeAsync();
     }
 

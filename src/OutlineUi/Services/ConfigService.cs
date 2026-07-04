@@ -61,4 +61,30 @@ public class ConfigService
     }
 
     public string GetConfigPath() => ConfigFile;
+
+    public string GetTheme()
+    {
+        try
+        {
+            var json = File.ReadAllText(ConfigFile, Encoding.UTF8);
+            var config = JsonSerializer.Deserialize<AppConfig>(json);
+            return config?.Theme ?? "Light";
+        }
+        catch
+        {
+            return "Light";
+        }
+    }
+
+    public void SetTheme(string theme)
+    {
+        try
+        {
+            var json = File.ReadAllText(ConfigFile, Encoding.UTF8);
+            var config = JsonSerializer.Deserialize<AppConfig>(json) ?? new AppConfig();
+            config.Theme = theme;
+            Save(config);
+        }
+        catch { }
+    }
 }

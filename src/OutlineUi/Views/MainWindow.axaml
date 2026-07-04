@@ -67,6 +67,9 @@
                      ToolTip.Tip="上传当前文档(Ctrl+SHIFT+S)">
           <antdicons:AntDesignIconProvider Kind="CloudUploadOutlined" />
         </atom:Button>
+        <atom:Button Command="{Binding ToggleThemeCommand}"
+                     ToolTip.Tip="切换主题"
+                     Content="{Binding ThemeIcon}"></atom:Button>
       </StackPanel>
       
       <StackPanel Orientation="Horizontal" Spacing="10">
