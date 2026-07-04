@@ -1,14 +1,15 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:OutlineUi.ViewModels"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="500"
-        x:Class="OutlineUi.Views.UploadListDialog"
-        x:DataType="vm:UploadListDialogViewModel"
-        Width="750"
-        Height="550"
-        Title="批量上传文档">
+<atom:Window xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:atom="https://atomui.net"
+             xmlns:vm="using:OutlineUi.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="500"
+             x:Class="OutlineUi.Views.UploadListDialog"
+             x:DataType="vm:UploadListDialogViewModel"
+             Width="800"
+             Height="550"
+             Title="批量上传文档">
 
   <Design.DataContext>
     <vm:UploadListDialogViewModel />
@@ -21,55 +22,46 @@
                FontWeight="Bold"
                Margin="0,0,0,15" />
 
-    <Border Grid.Row="1" 
-            Background="#FAFAFA" 
-            BorderBrush="#E0E0E0" 
-            BorderThickness="1"
-            CornerRadius="4">
-      <ScrollViewer>
-        <ItemsControl ItemsSource="{Binding Files}">
-          <ItemsControl.ItemTemplate>
+    <atom:DataGrid x:Name="UploadDataGrid" Grid.Row="1" 
+                   ItemsSource="{Binding Files}" 
+                   AutoGenerateColumns="False"
+                   SelectionMode="Extended"
+                   IsFrameBorderVisible="True"
+                   CanUserSortColumns="False"
+                   CanUserReorderColumns="False"
+                   CanUserResizeColumns="False">
+      <atom:DataGrid.Columns>
+        <atom:DataGridSelectionColumn />
+        <atom:DataGridTextColumn Header="文档标题" 
+                                 Binding="{Binding DocumentTitle}" 
+                                 Width="*" />
+        <atom:DataGridTextColumn Header="本地修改时间" 
+                                 Binding="{Binding LocalTime, StringFormat='{}{0:MM-dd HH:mm:ss}'}" 
+                                 Width="140" />
+        <atom:DataGridTextColumn Header="服务器时间" 
+                                 Binding="{Binding ServerTime, StringFormat='{}{0:MM-dd HH:mm:ss}'}" 
+                                 Width="140" />
+        <atom:DataGridTemplateColumn Header="状态" Width="80">
+          <atom:DataGridTemplateColumn.CellTemplate>
             <DataTemplate>
-              <Border BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="10">
-                <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto">
-                  <CheckBox Grid.Column="0" 
-                            IsChecked="{Binding IsSelected}" 
-                            Margin="0,0,10,0" />
-                  <TextBlock Grid.Column="1" 
-                             Text="{Binding DocumentTitle}" 
-                             FontWeight="Bold"
-                             Margin="0,0,15,0" />
-                  <TextBlock Grid.Column="2" 
-                             Text="{Binding FileName}" 
-                             Foreground="Gray"
-                             Margin="0,0,15,0" />
-                  <TextBlock Grid.Column="3" 
-                             Text="{Binding LocalTime, StringFormat='{}{0:MM-dd HH:mm}'}" 
-                             Margin="0,0,15,0" />
-                  <TextBlock Grid.Column="4" 
-                             Text="{Binding ServerTime, StringFormat='{}{0:MM-dd HH:mm}'}" 
-                             Margin="0,0,15,0" />
-                  <TextBlock Grid.Column="5" 
-                             Text="{Binding StatusText}" 
-                             Foreground="{Binding StatusColor}" 
-                             FontWeight="Bold" />
-                </Grid>
-              </Border>
+              <TextBlock Text="{Binding StatusText}" 
+                         Foreground="{Binding StatusColor}" 
+                         FontWeight="Medium"
+                         VerticalAlignment="Center" />
             </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </ScrollViewer>
-    </Border>
+          </atom:DataGridTemplateColumn.CellTemplate>
+        </atom:DataGridTemplateColumn>
+      </atom:DataGrid.Columns>
+    </atom:DataGrid>
 
     <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,15,0,0">
-      <Button Content="全选" Command="{Binding SelectAllCommand}" Width="70" />
-      <Button Content="取消全选" Command="{Binding DeselectAllCommand}" Width="80" />
+      <atom:Button Content="全选" Command="{Binding SelectAllCommand}" Width="80" />
+      <atom:Button Content="取消全选" Command="{Binding DeselectAllCommand}" Width="100" />
     </StackPanel>
 
     <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="15" HorizontalAlignment="Right" Margin="0,20,0,0">
-      <Button Content="上传选中" Command="{Binding UploadSelectedCommand}" Width="100" Background="#4CAF50" Foreground="White" />
-      <Button Content="全部上传" Command="{Binding UploadAllCommand}" Width="100" Background="#2196F3" Foreground="White" />
-      <Button Content="取消" Command="{Binding CancelCommand}" Width="80" />
+      <atom:Button Content="上传选中" Command="{Binding UploadSelectedCommand}" Width="100" ButtonType="Primary" />
+      <atom:Button Content="全部上传" Command="{Binding UploadAllCommand}" Width="100" ButtonType="Primary" />
     </StackPanel>
   </Grid>
-</Window>
+</atom:Window>

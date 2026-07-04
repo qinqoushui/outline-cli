@@ -63,7 +63,7 @@
           <antdicons:AntDesignIconProvider Kind="SaveOutlined" />
         </atom:Button>
         <atom:Button Command="{Binding UploadCurrentCommand}" 
-                     ToolTip.Tip="上传当前文档">
+                     ToolTip.Tip="上传当前文档(Ctrl+SHIFT+S)">
           <antdicons:AntDesignIconProvider Kind="CloudUploadOutlined" />
         </atom:Button>
       </StackPanel>

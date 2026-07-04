@@ -18,8 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Avalonia" Version="12.0.4" />
-    <PackageReference Include="Avalonia.Desktop" Version="12.0.4" />
+    <PackageReference Include="AtomUI.Desktop.Controls.DataGrid" Version="6.0.2" />
+    <PackageReference Include="Avalonia" Version="12.0.5" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.0.5" />
     <PackageReference Include="AtomUI.Desktop.Controls" Version="6.0.2" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <PackageReference Include="CodeWF.Markdown" Version="12.0.4.3" />

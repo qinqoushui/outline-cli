@@ -1,10 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using System.Windows.Input;
 using OutlineUi.Models;
@@ -21,7 +21,13 @@ public class UploadFileInfo : ViewModelBase
     public DateTime? LocalTime { get; set; }
     public DateTime? ServerTime { get; set; }
     public bool HasConflict { get; set; }
-    public bool IsSelected { get; set; } = true;
+    
+    private bool _isSelected = true;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set => SetProperty(ref _isSelected, value);
+    }
     
     public string StatusText => HasConflict ? "⚠️ 冲突" : "正常";
     public string StatusColor => HasConflict ? "#FF5722" : "#4CAF50";
@@ -45,6 +51,7 @@ public class UploadListDialogViewModel : ViewModelBase
     public ICommand DeselectAllCommand { get; }
     
     private TaskCompletionSource<bool> _tcs = new();
+    private Views.UploadListDialog? _dialog;
 
     public UploadListDialogViewModel()
     {
@@ -62,10 +69,7 @@ public class UploadListDialogViewModel : ViewModelBase
 
     private void UploadAll()
     {
-        foreach (var file in Files)
-        {
-            file.IsSelected = true;
-        }
+        _dialog?.SelectAll();
         _tcs.TrySetResult(true);
     }
 
@@ -76,18 +80,12 @@ public class UploadListDialogViewModel : ViewModelBase
 
     private void SelectAll()
     {
-        foreach (var file in Files)
-        {
-            file.IsSelected = true;
-        }
+        _dialog?.SelectAll();
     }
 
     private void DeselectAll()
     {
-        foreach (var file in Files)
-        {
-            file.IsSelected = false;
-        }
+        _dialog?.DeselectAll();
     }
 
     public async Task<bool> ShowAsync()
@@ -97,7 +95,7 @@ public class UploadListDialogViewModel : ViewModelBase
         var conflictCount = Files.Count(f => f.HasConflict);
         StatusMessage = $"共 {Files.Count} 个文件待上传，其中 {conflictCount} 个存在冲突";
         
-        var dialog = new Views.UploadListDialog
+        _dialog = new Views.UploadListDialog
         {
             DataContext = this
         };
@@ -106,7 +104,7 @@ public class UploadListDialogViewModel : ViewModelBase
             : null;
         if (window != null)
         {
-            var _ = dialog.ShowDialog(window);
+            var _ = _dialog.ShowDialog(window);
             return await _tcs.Task;
         }
         return false;
@@ -115,5 +113,15 @@ public class UploadListDialogViewModel : ViewModelBase
     public void Close()
     {
         _tcs.TrySetResult(false);
+    }
+
+    public IEnumerable<UploadFileInfo> GetSelectedFiles()
+    {
+        if (_dialog != null)
+        {
+            var dataGrid = _dialog.UploadDataGrid;
+            return dataGrid.SelectedItems.Cast<UploadFileInfo>().ToList();
+        }
+        return Files.Where(f => f.IsSelected);
     }
 }

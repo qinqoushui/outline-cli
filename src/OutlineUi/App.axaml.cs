@@ -20,6 +20,7 @@ public partial class App : Application
             builder.WithDefaultTheme(IThemeManager.DEFAULT_THEME_ID);
             builder.WithDefaultLanguageVariant(LanguageVariant.zh_CN);
             builder.UseDesktopControls();
+            builder.UseDesktopDataGrid();
         });
     }
 
