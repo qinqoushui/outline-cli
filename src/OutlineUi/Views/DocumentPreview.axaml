@@ -3,6 +3,7 @@
              xmlns:vm="using:OutlineUi.ViewModels"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:md="https://codewf.com"
              mc:Ignorable="d" d:DesignWidth="400" d:DesignHeight="300"
              x:Class="OutlineUi.Views.DocumentPreview"
              x:DataType="vm:DocumentPreviewViewModel">
@@ -26,10 +27,14 @@
     <TextBlock DockPanel.Dock="Bottom" Margin="10" Text="{Binding Document.UpdatedAt, StringFormat='更新时间: {0}'}" />
 
     <Grid>
-      <!-- 预览模式：占位控件，在代码中动态创建 WebView2 -->
-      <ContentControl x:Name="PreviewHost" 
-                      IsVisible="{Binding IsPreviewMode}"
-                      Margin="10" />
+      <!-- 预览模式：使用 CodeWF.Markdown 的 MarkdownViewer -->
+      <ScrollViewer IsVisible="{Binding IsPreviewMode}"
+                    HorizontalScrollBarVisibility="Disabled"
+                    VerticalScrollBarVisibility="Auto">
+        <md:MarkdownViewer Markdown="{Binding SourceText}"
+                          TypographyTheme="Simple"
+                          TypographySize="Normal" />
+      </ScrollViewer>
       
       <!-- 编辑模式：多行文本框 -->
       <ScrollViewer IsVisible="{Binding IsEditMode}">

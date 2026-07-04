@@ -1,5 +1,6 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:markdown="https://codewf.com"
              x:Class="OutlineUi.App">
     <Application.Styles>
         <Style Selector="Window">
@@ -8,5 +9,6 @@
         <Style Selector="TextBlock">
             <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
         </Style>
+        <markdown:MarkdownThemes />
     </Application.Styles>
 </Application>
