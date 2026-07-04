@@ -335,7 +335,18 @@ public class MainViewModel : ViewModelBase
         var docDir = Path.Combine(AppContext.BaseDirectory, "doc");
         if (!Directory.Exists(docDir))
         {
-            StatusMessage = "本地文档目录不存在";
+            StatusMessage = $"本地文档目录不存在: {docDir}";
+            
+            // 可以选择创建目录
+            try
+            {
+                Directory.CreateDirectory(docDir);
+                StatusMessage = $"已创建文档目录: {docDir}，请将 .md 文件放入该目录后重试";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"无法创建目录: {ex.Message}";
+            }
             return;
         }
 
@@ -345,7 +356,7 @@ public class MainViewModel : ViewModelBase
 
         if (files.Count == 0)
         {
-            StatusMessage = "没有找到本地文档";
+            StatusMessage = $"没有在 {docDir} 找到 .md 文件";
             return;
         }
 
