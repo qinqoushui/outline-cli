@@ -128,16 +128,9 @@ public class MainViewModel : ViewModelBase
             {
                 ApplyTheme(value);
                 _configService.SetTheme(value ? "Dark" : "Light");
-                OnPropertyChanged(nameof(ThemeIcon));
             }
         }
     }
-
-    public object ThemeIcon => new AtomUI.Icons.AntDesign.AntDesignIconProvider
-    {
-        Kind = _isDarkMode ? AtomUI.Icons.AntDesign.AntDesignIconKind.MoonOutlined 
-                           : AtomUI.Icons.AntDesign.AntDesignIconKind.SunOutlined
-    };
 
     private void ApplyTheme(bool isDark)
     {

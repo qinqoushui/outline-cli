@@ -3,6 +3,7 @@
              xmlns:atom="https://atomui.net"
              xmlns:vm="using:OutlineUi.ViewModels"
              xmlns:antdicons="https://atomui.net/icons/antdesign"
+             xmlns:controls="using:OutlineUi.Controls"
              Title="Outline Wiki"
              Width="1200" Height="800"
 			  Icon="/Assets/icon.ico"
@@ -68,8 +69,9 @@
           <antdicons:AntDesignIconProvider Kind="CloudUploadOutlined" />
         </atom:Button>
         <atom:Button Command="{Binding ToggleThemeCommand}"
-                     ToolTip.Tip="切换主题"
-                     Content="{Binding ThemeIcon}"></atom:Button>
+                     ToolTip.Tip="切换主题">
+          <controls:ThemeIconControl IsDark="{Binding IsDarkMode}" />
+        </atom:Button>
       </StackPanel>
       
       <StackPanel Orientation="Horizontal" Spacing="10">

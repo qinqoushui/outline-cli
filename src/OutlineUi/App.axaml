@@ -5,6 +5,7 @@
              x:Class="OutlineUi.App">
     <Application.Resources>
         <converters:BoolToIconConverter x:Key="BoolToIconConverter" />
+        <converters:BooleanNegationConverter x:Key="BooleanNegationConverter" />
     </Application.Resources>
     
     <Application.Styles>
