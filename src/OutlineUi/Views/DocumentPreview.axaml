@@ -19,8 +19,8 @@
     <ScrollViewer IsVisible="{Binding IsPreviewMode}"
                   HorizontalScrollBarVisibility="Disabled"
                   VerticalScrollBarVisibility="Auto">
-      <md:MarkdownViewer Markdown="{Binding SourceText}"
-                        TypographyTheme="Simple"
+      <md:MarkdownViewer x:Name="DocumentMarkdownViewer"
+                        Markdown="{Binding SourceText}"
                         TypographySize="Normal" />
     </ScrollViewer>
     

@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using AtomUI.Controls;
+using CodeWF.Markdown;
 using OutlineUi.Models;
 using OutlineUi.Services;
 
@@ -140,6 +141,7 @@ public class MainViewModel : ViewModelBase
         {
             var currentNodes = DocumentNodes.ToList();
             app.SetDarkThemeMode(isDark);
+            App.ApplyTheme(isDark);
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
                 if (DocumentNodes.Count == 0 && currentNodes.Count > 0)
@@ -174,17 +176,9 @@ public class MainViewModel : ViewModelBase
         ToggleNavigationCommand = new RelayCommand(ToggleNavigation);
         ToggleThemeCommand = new RelayCommand(() => IsDarkMode = !IsDarkMode);
         
-        _ = InitializeAsync();
+        IsDarkMode = App.IsDark;
         
-        _ = Task.Run(async () =>
-        {
-            await Task.Delay(500);
-            var savedTheme = _configService.GetTheme();
-            if (savedTheme == "Dark")
-            {
-                IsDarkMode = true;
-            }
-        });
+        _ = InitializeAsync();
     }
 
     private void ToggleNavigation()

@@ -68,6 +68,26 @@ public class DocumentPreviewViewModel : ViewModelBase
         set => SetProperty(ref _isModified, value);
     }
     
+    private bool _isDarkMode;
+    public bool IsDarkMode
+    {
+        get => _isDarkMode;
+        set
+        {
+            if (SetProperty(ref _isDarkMode, value))
+            {
+                TypographyTheme = value ? "GeekBlack" : "Simple";
+            }
+        }
+    }
+    
+    private string _typographyTheme = "Simple";
+    public string TypographyTheme
+    {
+        get => _typographyTheme;
+        set => SetProperty(ref _typographyTheme, value);
+    }
+    
     public ICommand SaveCommand { get; }
     public ICommand ToggleModeCommand { get; }
 

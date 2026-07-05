@@ -33,3 +33,20 @@ public class BooleanNegationConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
+
+public class BoolToMarkdownThemeConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+    {
+        if (value is bool isDark)
+        {
+            return isDark ? "GeekBlack" : "Simple";
+        }
+        return "Simple";
+    }
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, System.Globalization.CultureInfo culture)
+    {
+        throw new NotImplementedException();
+    }
+}

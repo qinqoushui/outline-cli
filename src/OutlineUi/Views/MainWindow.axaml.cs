@@ -53,6 +53,26 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
         {
             UpdateGridLayout();
         }
+        else if (e.PropertyName == nameof(MainViewModel.IsDarkMode))
+        {
+            if (_currentPreviewViewModel != null)
+            {
+                _currentPreviewViewModel.IsDarkMode = _viewModel.IsDarkMode;
+            }
+            
+            if (PreviewArea.Content is DocumentPreview preview)
+            {
+                var markdownViewer = preview.FindControl<Control>("DocumentMarkdownViewer");
+                if (markdownViewer != null)
+                {
+                    var reloadMethod = markdownViewer.GetType().GetMethod("Reload");
+                    if (reloadMethod != null)
+                    {
+                        reloadMethod.Invoke(markdownViewer, null);
+                    }
+                }
+            }
+        }
     }
 
     private void UpdateGridLayout()
@@ -86,6 +106,7 @@ public partial class MainWindow : AtomUI.Desktop.Controls.Window
             }
             
             var viewModel = new DocumentPreviewViewModel(_viewModel.ApiService, _viewModel.NotificationService);
+            viewModel.IsDarkMode = _viewModel.IsDarkMode;
             viewModel.ConflictCheckRequested += ViewModel_ConflictCheckRequested;
             await viewModel.LoadDocumentAsync(node.Id);
             var preview = new DocumentPreview
