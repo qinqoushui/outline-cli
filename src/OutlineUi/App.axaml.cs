@@ -10,6 +10,10 @@ using AtomUI.Theme;
 using AtomUI.Theme.Language;
 using AtomUI.Desktop.Controls;
 using CodeWF.Markdown.Themes;
+using Lang.Avalonia;
+using Lang.Avalonia.Json;
+using System.Globalization;
+using System.IO;
 
 namespace OutlineUi;
 
@@ -30,6 +34,12 @@ public partial class App : Application
         });
 
         Styles.Add(new MarkdownThemes());
+        
+        var langPlugin = new JsonLangPlugin
+        {
+            ResourceFolder = System.IO.Path.Combine(System.AppContext.BaseDirectory, "I18n")
+        };
+        I18nManager.Instance.Register(langPlugin, new CultureInfo("zh-CN"), out _);
         
         var configService = new ConfigService();
         var savedTheme = configService.GetTheme();
