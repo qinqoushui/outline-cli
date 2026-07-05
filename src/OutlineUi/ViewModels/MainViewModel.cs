@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using AtomUI.Controls;
 using OutlineUi.Models;
 using OutlineUi.Services;
 
@@ -137,18 +138,7 @@ public class MainViewModel : ViewModelBase
         var app = Avalonia.Application.Current;
         if (app != null)
         {
-            try
-            {
-                app.RequestedThemeVariant = isDark 
-                    ? Avalonia.Styling.ThemeVariant.Dark 
-                    : Avalonia.Styling.ThemeVariant.Light;
-            }
-            catch (AtomUI.Theme.ThemeNotFoundException)
-            {
-            }
-            catch (Exception)
-            {
-            }
+            app.SetDarkThemeMode(isDark);
         }
     }
 
