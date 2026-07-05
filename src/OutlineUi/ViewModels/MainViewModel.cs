@@ -142,6 +142,7 @@ public class MainViewModel : ViewModelBase
             var currentNodes = DocumentNodes.ToList();
             app.SetDarkThemeMode(isDark);
             App.ApplyTheme(isDark);
+            CurrentPreview?.IsDarkMode = isDark;
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
                 if (DocumentNodes.Count == 0 && currentNodes.Count > 0)

@@ -21,12 +21,12 @@
                   VerticalScrollBarVisibility="Auto">
       <md:MarkdownViewer x:Name="DocumentMarkdownViewer"
                         Markdown="{Binding SourceText}"
+                        TypographyTheme="{Binding TypographyTheme}"
                         TypographySize="Normal" />
     </ScrollViewer>
     
     <!-- 编辑模式：多行文本编辑器 -->
     <Border IsVisible="{Binding IsEditMode}"
-            
             BorderBrush="#E0E0E0"
             BorderThickness="1">
       <atom:TextArea Text="{Binding SourceText, Mode=TwoWay}"

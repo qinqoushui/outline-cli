@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using OutlineUi.ViewModels;
-using System;
 
 namespace OutlineUi.Views;
 
