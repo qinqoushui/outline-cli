@@ -144,13 +144,17 @@ public class MainViewModel : ViewModelBase
         var app = Avalonia.Application.Current;
         if (app != null)
         {
-            if (isDark)
+            try
             {
-                app.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
+                app.RequestedThemeVariant = isDark 
+                    ? Avalonia.Styling.ThemeVariant.Dark 
+                    : Avalonia.Styling.ThemeVariant.Light;
             }
-            else
+            catch (AtomUI.Theme.ThemeNotFoundException)
             {
-                app.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light;
+            }
+            catch (Exception)
+            {
             }
         }
     }
@@ -176,10 +180,17 @@ public class MainViewModel : ViewModelBase
         ToggleNavigationCommand = new RelayCommand(ToggleNavigation);
         ToggleThemeCommand = new RelayCommand(() => IsDarkMode = !IsDarkMode);
         
-        var savedTheme = _configService.GetTheme();
-        IsDarkMode = savedTheme == "Dark";
-        
         _ = InitializeAsync();
+        
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(500);
+            var savedTheme = _configService.GetTheme();
+            if (savedTheme == "Dark")
+            {
+                IsDarkMode = true;
+            }
+        });
     }
 
     private void ToggleNavigation()
