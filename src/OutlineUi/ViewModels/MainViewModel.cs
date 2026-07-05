@@ -138,7 +138,18 @@ public class MainViewModel : ViewModelBase
         var app = Avalonia.Application.Current;
         if (app != null)
         {
+            var currentNodes = DocumentNodes.ToList();
             app.SetDarkThemeMode(isDark);
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (DocumentNodes.Count == 0 && currentNodes.Count > 0)
+                {
+                    foreach (var node in currentNodes)
+                    {
+                        DocumentNodes.Add(node);
+                    }
+                }
+            });
         }
     }
 
