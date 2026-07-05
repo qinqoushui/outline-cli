@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using AtomUI.Controls;
 using AtomUI.Icons.AntDesign;
 
 namespace OutlineUi.Controls;
@@ -31,9 +32,10 @@ public class ThemeIconControl : ContentControl
 
     private void UpdateIcon(bool isDark)
     {
-        Content = new AntDesignIconProvider
+        var provider = new AntDesignIconProvider
         {
             Kind = isDark ? AntDesignIconKind.MoonOutlined : AntDesignIconKind.SunOutlined
         };
+        Content = provider.ProvideValue(null);
     }
 }
