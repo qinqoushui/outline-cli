@@ -1,6 +1,5 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Markup.Xaml;
 using AtomUI.Icons.AntDesign;
 
 namespace OutlineUi.Controls;
@@ -18,13 +17,7 @@ public class ThemeIconControl : ContentControl
 
     public ThemeIconControl()
     {
-        InitializeComponent();
         UpdateIcon(false);
-    }
-
-    private void InitializeComponent()
-    {
-        AvaloniaXamlLoader.Load(this);
     }
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
