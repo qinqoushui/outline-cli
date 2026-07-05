@@ -35,16 +35,61 @@ public partial class App : Application
 
         Styles.Add(new MarkdownThemes());
         
-        var langPlugin = new JsonLangPlugin
-        {
-            ResourceFolder = System.IO.Path.Combine(System.AppContext.BaseDirectory, "I18n")
-        };
-        I18nManager.Instance.Register(langPlugin, new CultureInfo("zh-CN"), out _);
+        InitializeI18n();
         
         var configService = new ConfigService();
         var savedTheme = configService.GetTheme();
         IsDark = savedTheme == "Dark";
         ApplyTheme(IsDark);
+    }
+
+    private static void InitializeI18n()
+    {
+        var i18nDir = System.IO.Path.Combine(System.AppContext.BaseDirectory, "I18n");
+        if (!Directory.Exists(System.IO.Path.Combine(i18nDir, "CodeWF.Markdown")))
+        {
+            ExtractEmbeddedI18n(i18nDir);
+        }
+        
+        var langPlugin = new JsonLangPlugin
+        {
+            ResourceFolder = i18nDir
+        };
+        I18nManager.Instance.Register(langPlugin, new CultureInfo("zh-CN"), out _);
+    }
+
+    private static void ExtractEmbeddedI18n(string targetDir)
+    {
+        var dir = System.IO.Path.Combine(targetDir, "CodeWF.Markdown");
+        Directory.CreateDirectory(dir);
+        
+        var zhCn = @"{
+  ""language"": ""简体中文"",
+  ""description"": ""中文（简体）"",
+  ""cultureName"": ""zh-CN"",
+  ""CodeWF"": {
+    ""MarkdownL"": {
+      ""ImagePreviewTitle"": ""图片预览"",
+      ""ImagePreviewZoomOut"": ""缩小"",
+      ""ImagePreviewZoomIn"": ""放大"",
+      ""ImagePreviewRotateLeft"": ""左旋"",
+      ""ImagePreviewRotateRight"": ""右旋"",
+      ""ImagePreviewSaveAs"": ""另存为"",
+      ""ImagePreviewImagesFileType"": ""图片"",
+      ""ImagePreviewZoomStatus"": ""{0:P0} / {1} 度"",
+      ""ImagePreviewActualSize"": ""1:1"",
+      ""ImagePreviewFit"": ""适应"",
+      ""ImageLoadFailed"": ""图片加载失败：{0}"",
+      ""ImageFileNotFound"": ""文件不存在：{0}"",
+      ""CopySelectedText"": ""复制选中文本"",
+      ""CopyRenderedText"": ""复制渲染文本"",
+      ""Copy"": ""复制"",
+      ""SocialCopyToolName"": ""Markdown 编辑器"",
+      ""SocialCopySuffixFormat"": ""本文使用 {0} 排版""
+    }
+  }
+}";
+        File.WriteAllText(System.IO.Path.Combine(dir, "zh-CN.json"), zhCn);
     }
     
     public static void ApplyTheme(bool dark)
