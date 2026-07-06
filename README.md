@@ -14,6 +14,8 @@
 - **暗黑模式** — 支持亮色/暗色主题切换，Markdown 预览跟随主题
 - **快捷键** — Ctrl+B 折叠侧边栏、Ctrl+I 切换预览/编辑、Ctrl+S 保存
 
+## 截图
+<img width="3472" height="1878" alt="image" src="https://github.com/user-attachments/assets/9dcde150-dcc8-4d0b-8a25-eff15ee97162" />
 
 ## 快速开始
 
