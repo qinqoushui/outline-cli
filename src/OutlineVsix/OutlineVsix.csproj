@@ -12,7 +12,8 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-    <ApplicationIcon>Resources\Icon.ico</ApplicationIcon>
+    <DeployVsixExtension>true</DeployVsixExtension>
+    <DeployExtension>true</DeployExtension>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,21 +22,13 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
   </ItemGroup>
 
+  <Import Project="$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets" Condition="Exists('$(VSToolsPath)\VSSDK\Microsoft.VsSDK.targets')" />
+
   <ItemGroup>
     <Content Include="source.extension.vsixmanifest">
       <IncludeInVSIX>true</IncludeInVSIX>
     </Content>
-    <Content Include="Resources\Icon.png">
-      <IncludeInVSIX>true</IncludeInVSIX>
-    </Content>
     <VSCTSource Include="Resources\OutlineVsixPackage.vsct" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="OutlineUi">
-      <HintPath>..\OutlineUi\bin\Debug\net10.0\OutlineUi.dll</HintPath>
-      <Private>true</Private>
-    </Reference>
   </ItemGroup>
 
 </Project>

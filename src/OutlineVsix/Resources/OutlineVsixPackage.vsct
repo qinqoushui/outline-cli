@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <Extern href="stdidcmd.h"/>
+  <Extern href="vsshlids.h"/>
+
+  <Commands package="guidOutlineVsixPackage">
+    <Groups>
+      <Group guid="guidOutlineVsixPackageCmdSet" id="MyMenuGroup" priority="0x0600">
+        <Parent guid="guidSHLMainMenu" id="IDM_VS_MENU_TOOLS"/>
+      </Group>
+    </Groups>
+
+    <Buttons>
+      <Button guid="guidOutlineVsixPackageCmdSet" id="cmdidOpenOutlineDoc" priority="0x0100" type="Button">
+        <Parent guid="guidOutlineVsixPackageCmdSet" id="MyMenuGroup" />
+        <Icon guid="guidOfficeIcon" id="msotcidNoIcon"/>
+        <Strings>
+          <ButtonText>打开 Outline 文档</ButtonText>
+          <CommandName>OpenOutlineDocument</CommandName>
+        </Strings>
+      </Button>
+    </Buttons>
+  </Commands>
+
+  <Symbols>
+    <GuidSymbol name="guidOutlineVsixPackage" value="{a1b2c3d4-e5f6-7890-abcd-ef1234567890}" />
+    <GuidSymbol name="guidOutlineVsixPackageCmdSet" value="{b2c3d4e5-f6a7-8901-bcde-f12345678901}">
+      <IDSymbol name="MyMenuGroup" value="0x1020" />
+      <IDSymbol name="cmdidOpenOutlineDoc" value="0x0100" />
+    </GuidSymbol>
+    <GuidSymbol name="guidOfficeIcon" value="{30a3c0c1-d57f-4c6e-9c0c-4f5e9c1c0c1c}">
+      <IDSymbol name="msotcidNoIcon" value="0" />
+    </GuidSymbol>
+  </Symbols>
+</CommandTable>
